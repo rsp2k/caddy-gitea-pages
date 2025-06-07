@@ -1,6 +1,6 @@
 module github.com/rsp2k/caddy-gitea-pages
 
-go 1.21
+go 1.22
 
 require (
 	github.com/caddyserver/caddy/v2 v2.7.6
