@@ -17,19 +17,34 @@ A Caddy module that implements GitHub Pages-like functionality for self-hosted G
 
 ### Option 1: Using xcaddy (Recommended)
 
+First, install xcaddy if you haven't already:
+```bash
+go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
+```
+
+Then build Caddy with the module:
 ```bash
 xcaddy build --with github.com/rsp2k/caddy-gitea-pages
 ```
 
 ### Option 2: Manual Build
 
-1. Clone this repository
-2. Build Caddy with the module:
+1. Install xcaddy:
+   ```bash
+   go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
+   ```
 
-```bash
-go mod tidy
-xcaddy build --with github.com/rsp2k/caddy-gitea-pages=.
-```
+2. Clone this repository:
+   ```bash
+   git clone https://github.com/rsp2k/caddy-gitea-pages.git
+   cd caddy-gitea-pages
+   ```
+
+3. Build Caddy with the module:
+   ```bash
+   go mod tidy
+   xcaddy build --with github.com/rsp2k/caddy-gitea-pages=.
+   ```
 
 ## Configuration
 
@@ -48,7 +63,7 @@ pages.example.com {
 ### Configuration Options
 
 | Option | Description | Default |
-|--------|-------------|---------||
+|--------|-------------|---------|
 | `gitea_url` | URL of your Gitea instance | Required |
 | `gitea_token` | Gitea access token for API access | Optional |
 | `cache_dir` | Directory for caching repositories | `$CADDY_DATA/gitea_pages_cache` |
@@ -86,7 +101,7 @@ gitea_pages {
 **Auto Mapping Options:**
 
 | Option | Description | Example |
-|--------|-------------|---------||
+|--------|-------------|---------|
 | `enabled` | Enable auto mapping | `true` |
 | `pattern` | Domain pattern to match | `{subdomain}.{domain}`, `{domain}`, `{user}.pages.{domain}` |
 | `owner` | Default repository owner | `myorg` |
