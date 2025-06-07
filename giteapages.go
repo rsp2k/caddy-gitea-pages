@@ -1,6 +1,8 @@
 package giteapages
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -19,28 +21,28 @@ import (
 )
 
 func init() {
-	caddy.RegisterModule(GiteaPages{})
+	caddy.RegisterModule(GitteaPages{})
 	httpcaddyfile.RegisterHandlerDirective("gitea_pages", parseCaddyfile)
 }
 
-// GiteaPages implements GitHub Pages functionality for Gitea
-type GiteaPages struct {
+// GitteaPages implements GitHub Pages functionality for Gitea
+type GitteaPages struct {
 	// Gitea server configuration
-	GiteaURL     string `json:"gitea_url,omitempty"`
-	GiteaToken   string `json:"gitea_token,omitempty"`
-	
+	GitteaURL   string `json:"gitea_url,omitempty"`
+	GitteaToken string `json:"gitea_token,omitempty"`
+
 	// Local cache configuration
-	CacheDir     string        `json:"cache_dir,omitempty"`
-	CacheTTL     caddy.Duration `json:"cache_ttl,omitempty"`
-	
+	CacheDir string        `json:"cache_dir,omitempty"`
+	CacheTTL caddy.Duration `json:"cache_ttl,omitempty"`
+
 	// Pages configuration
 	DefaultBranch string   `json:"default_branch,omitempty"`
 	IndexFiles    []string `json:"index_files,omitempty"`
-	
+
 	// Custom domain mapping
 	DomainMappings []DomainMapping `json:"domain_mappings,omitempty"`
 	AutoMapping    *AutoMapping    `json:"auto_mapping,omitempty"`
-	
+
 	// Internal fields
 	logger *zap.Logger
 	cache  *repoCache
@@ -57,16 +59,16 @@ type DomainMapping struct {
 // AutoMapping defines automatic domain-to-repository mapping rules
 type AutoMapping struct {
 	Enabled    bool   `json:"enabled,omitempty"`
-	Pattern    string `json:"pattern,omitempty"`    // e.g., "{domain}" or "{subdomain}.{domain}"
-	Owner      string `json:"owner,omitempty"`      // Default owner for auto-mapped repos
+	Pattern    string `json:"pattern,omitempty"`     // e.g., "{domain}" or "{subdomain}.{domain}"
+	Owner      string `json:"owner,omitempty"`       // Default owner for auto-mapped repos
 	RepoFormat string `json:"repo_format,omitempty"` // e.g., "{domain}" or "{subdomain}"
-	Branch     string `json:"branch,omitempty"`     // Override default branch for auto-mapped repos
+	Branch     string `json:"branch,omitempty"`      // Override default branch for auto-mapped repos
 }
 
 // repoCache manages cached repository contents
 type repoCache struct {
-	mu     sync.RWMutex
-	repos  map[string]*cacheEntry
+	mu       sync.RWMutex
+	repos    map[string]*cacheEntry
 	cacheDir string
 }
 
@@ -75,8 +77,8 @@ type cacheEntry struct {
 	path       string
 }
 
-// GiteaRepo represents a repository from Gitea API
-type GiteaRepo struct {
+// GitteaRepo represents a repository from Gitea API
+type GitteaRepo struct {
 	Name          string `json:"name"`
 	FullName      string `json:"full_name"`
 	DefaultBranch string `json:"default_branch"`
@@ -84,17 +86,17 @@ type GiteaRepo struct {
 }
 
 // CaddyModule returns the Caddy module information
-func (GiteaPages) CaddyModule() caddy.ModuleInfo {
+func (GitteaPages) CaddyModule() caddy.ModuleInfo {
 	return caddy.ModuleInfo{
 		ID:  "http.handlers.gitea_pages",
-		New: func() caddy.Module { return new(GiteaPages) },
+		New: func() caddy.Module { return new(GitteaPages) },
 	}
 }
 
 // Provision sets up the module
-func (gp *GiteaPages) Provision(ctx caddy.Context) error {
+func (gp *GitteaPages) Provision(ctx caddy.Context) error {
 	gp.logger = ctx.Logger(gp)
-	
+
 	// Set defaults
 	if gp.CacheDir == "" {
 		gp.CacheDir = filepath.Join(caddy.AppDataDir(), "gitea_pages_cache")
@@ -121,7 +123,7 @@ func (gp *GiteaPages) Provision(ctx caddy.Context) error {
 	}
 
 	gp.logger.Info("gitea_pages module provisioned",
-		zap.String("gitea_url", gp.GiteaURL),
+		zap.String("gitea_url", gp.GitteaURL),
 		zap.String("cache_dir", gp.CacheDir),
 		zap.Duration("cache_ttl", time.Duration(gp.CacheTTL)))
 
@@ -129,10 +131,10 @@ func (gp *GiteaPages) Provision(ctx caddy.Context) error {
 }
 
 // ServeHTTP handles HTTP requests
-func (gp *GiteaPages) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp.Handler) error {
+func (gp *GitteaPages) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp.Handler) error {
 	// Try to resolve the request using custom domain mapping
 	owner, repo, filePath, branch := gp.resolveDomainMapping(r)
-	
+
 	if owner == "" || repo == "" {
 		// Fallback to path-based routing if no domain mapping found
 		parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
@@ -173,9 +175,9 @@ func (gp *GiteaPages) ServeHTTP(w http.ResponseWriter, r *http.Request, next cad
 }
 
 // serveFile serves a file from the repository
-func (gp *GiteaPages) serveFile(w http.ResponseWriter, r *http.Request, owner, repo, filePath, branch string) error {
+func (gp *GitteaPages) serveFile(w http.ResponseWriter, r *http.Request, owner, repo, filePath, branch string) error {
 	repoKey := fmt.Sprintf("%s/%s", owner, repo)
-	
+
 	// Check if we need to update the cache
 	if gp.shouldUpdateCache(repoKey, branch) {
 		if err := gp.updateRepoCache(owner, repo, branch); err != nil {
@@ -195,12 +197,12 @@ func (gp *GiteaPages) serveFile(w http.ResponseWriter, r *http.Request, owner, r
 
 	// Serve the file
 	fullPath := filepath.Join(entry.path, filePath)
-	
+
 	// Security check: ensure the file is within the repository directory
 	if !strings.HasPrefix(fullPath, entry.path) {
 		return fmt.Errorf("invalid file path")
 	}
-	
+
 	// Check if file exists
 	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
 		return fmt.Errorf("file not found")
@@ -211,7 +213,7 @@ func (gp *GiteaPages) serveFile(w http.ResponseWriter, r *http.Request, owner, r
 }
 
 // shouldUpdateCache checks if the cache needs updating
-func (gp *GiteaPages) shouldUpdateCache(repoKey, branch string) bool {
+func (gp *GitteaPages) shouldUpdateCache(repoKey, branch string) bool {
 	cacheKey := fmt.Sprintf("%s:%s", repoKey, branch)
 	gp.cache.mu.RLock()
 	entry, exists := gp.cache.repos[cacheKey]
@@ -225,9 +227,9 @@ func (gp *GiteaPages) shouldUpdateCache(repoKey, branch string) bool {
 }
 
 // updateRepoCache downloads and caches repository content
-func (gp *GiteaPages) updateRepoCache(owner, repo, branch string) error {
+func (gp *GitteaPages) updateRepoCache(owner, repo, branch string) error {
 	repoKey := fmt.Sprintf("%s/%s", owner, repo)
-	
+
 	// Get repository info from Gitea API
 	repoInfo, err := gp.getRepoInfo(owner, repo)
 	if err != nil {
@@ -244,9 +246,9 @@ func (gp *GiteaPages) updateRepoCache(owner, repo, branch string) error {
 	}
 
 	// Download repository archive
-	archiveURL := fmt.Sprintf("%s/api/v1/repos/%s/%s/archive/%s.tar.gz", 
-		strings.TrimRight(gp.GiteaURL, "/"), owner, repo, branch)
-	
+	archiveURL := fmt.Sprintf("%s/api/v1/repos/%s/%s/archive/%s.tar.gz",
+		strings.TrimRight(gp.GitteaURL, "/"), owner, repo, branch)
+
 	cacheKey := fmt.Sprintf("%s:%s", repoKey, branch)
 	if err := gp.downloadAndExtractRepo(archiveURL, cacheKey); err != nil {
 		return fmt.Errorf("failed to download repo: %v", err)
@@ -268,17 +270,17 @@ func (gp *GiteaPages) updateRepoCache(owner, repo, branch string) error {
 }
 
 // getRepoInfo fetches repository information from Gitea API
-func (gp *GiteaPages) getRepoInfo(owner, repo string) (*GiteaRepo, error) {
-	url := fmt.Sprintf("%s/api/v1/repos/%s/%s", 
-		strings.TrimRight(gp.GiteaURL, "/"), owner, repo)
-	
+func (gp *GitteaPages) getRepoInfo(owner, repo string) (*GitteaRepo, error) {
+	url := fmt.Sprintf("%s/api/v1/repos/%s/%s",
+		strings.TrimRight(gp.GitteaURL, "/"), owner, repo)
+
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	if gp.GiteaToken != "" {
-		req.Header.Set("Authorization", "token "+gp.GiteaToken)
+	if gp.GitteaToken != "" {
+		req.Header.Set("Authorization", "token "+gp.GitteaToken)
 	}
 
 	client := &http.Client{Timeout: 30 * time.Second}
@@ -292,7 +294,7 @@ func (gp *GiteaPages) getRepoInfo(owner, repo string) (*GiteaRepo, error) {
 		return nil, fmt.Errorf("gitea API returned status %d", resp.StatusCode)
 	}
 
-	var repoInfo GiteaRepo
+	var repoInfo GitteaRepo
 	if err := json.NewDecoder(resp.Body).Decode(&repoInfo); err != nil {
 		return nil, err
 	}
@@ -301,15 +303,15 @@ func (gp *GiteaPages) getRepoInfo(owner, repo string) (*GiteaRepo, error) {
 }
 
 // downloadAndExtractRepo downloads and extracts repository archive
-func (gp *GiteaPages) downloadAndExtractRepo(archiveURL, cacheKey string) error {
+func (gp *GitteaPages) downloadAndExtractRepo(archiveURL, cacheKey string) error {
 	// Create request
 	req, err := http.NewRequest("GET", archiveURL, nil)
 	if err != nil {
 		return err
 	}
 
-	if gp.GiteaToken != "" {
-		req.Header.Set("Authorization", "token "+gp.GiteaToken)
+	if gp.GitteaToken != "" {
+		req.Header.Set("Authorization", "token "+gp.GitteaToken)
 	}
 
 	// Download archive
@@ -324,19 +326,6 @@ func (gp *GiteaPages) downloadAndExtractRepo(archiveURL, cacheKey string) error 
 		return fmt.Errorf("failed to download archive: status %d", resp.StatusCode)
 	}
 
-	// Create temporary file
-	tempFile, err := os.CreateTemp("", "gitea-pages-*.tar.gz")
-	if err != nil {
-		return err
-	}
-	defer os.Remove(tempFile.Name())
-	defer tempFile.Close()
-
-	// Copy archive to temp file
-	if _, err := io.Copy(tempFile, resp.Body); err != nil {
-		return err
-	}
-
 	// Extract archive to cache directory
 	extractPath := filepath.Join(gp.cache.cacheDir, cacheKey)
 	if err := os.RemoveAll(extractPath); err != nil {
@@ -346,8 +335,59 @@ func (gp *GiteaPages) downloadAndExtractRepo(archiveURL, cacheKey string) error 
 		return err
 	}
 
-	// Note: In a real implementation, you'd want to use a proper tar.gz extraction
-	// For now, this is a placeholder that assumes extraction is handled elsewhere
+	// Extract tar.gz archive
+	gzr, err := gzip.NewReader(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to create gzip reader: %v", err)
+	}
+	defer gzr.Close()
+
+	tr := tar.NewReader(gzr)
+	for {
+		header, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("failed to read tar header: %v", err)
+		}
+
+		// Skip the top-level directory from the archive
+		pathParts := strings.Split(header.Name, "/")
+		if len(pathParts) > 1 {
+			relativePath := strings.Join(pathParts[1:], "/")
+			targetPath := filepath.Join(extractPath, relativePath)
+
+			// Security check: ensure the file is within the extract directory
+			if !strings.HasPrefix(targetPath, extractPath) {
+				continue
+			}
+
+			switch header.Typeflag {
+			case tar.TypeDir:
+				if err := os.MkdirAll(targetPath, os.FileMode(header.Mode)); err != nil {
+					return fmt.Errorf("failed to create directory %s: %v", targetPath, err)
+				}
+			case tar.TypeReg:
+				// Create parent directories if they don't exist
+				if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
+					return fmt.Errorf("failed to create parent directory for %s: %v", targetPath, err)
+				}
+
+				file, err := os.OpenFile(targetPath, os.O_CREATE|os.O_WRONLY, os.FileMode(header.Mode))
+				if err != nil {
+					return fmt.Errorf("failed to create file %s: %v", targetPath, err)
+				}
+
+				if _, err := io.Copy(file, tr); err != nil {
+					file.Close()
+					return fmt.Errorf("failed to extract file %s: %v", targetPath, err)
+				}
+				file.Close()
+			}
+		}
+	}
+
 	gp.logger.Debug("extracted repository archive",
 		zap.String("cache_key", cacheKey),
 		zap.String("path", extractPath))
@@ -356,11 +396,11 @@ func (gp *GiteaPages) downloadAndExtractRepo(archiveURL, cacheKey string) error 
 }
 
 // findIndexFile looks for index files in the repository
-func (gp *GiteaPages) findIndexFile(owner, repo string) string {
+func (gp *GitteaPages) findIndexFile(owner, repo string) string {
 	// Try with default branch first
 	branch := gp.DefaultBranch
 	cacheKey := fmt.Sprintf("%s/%s:%s", owner, repo, branch)
-	
+
 	gp.cache.mu.RLock()
 	entry, exists := gp.cache.repos[cacheKey]
 	gp.cache.mu.RUnlock()
@@ -380,47 +420,47 @@ func (gp *GiteaPages) findIndexFile(owner, repo string) string {
 }
 
 // resolveDomainMapping resolves a request to owner/repo based on domain mappings
-func (gp *GiteaPages) resolveDomainMapping(r *http.Request) (owner, repo, filePath, branch string) {
+func (gp *GitteaPages) resolveDomainMapping(r *http.Request) (owner, repo, filePath, branch string) {
 	host := r.Host
-	
+
 	// Remove port if present
 	if colonIndex := strings.Index(host, ":"); colonIndex != -1 {
 		host = host[:colonIndex]
 	}
-	
+
 	filePath = strings.Trim(r.URL.Path, "/")
-	
+
 	// Check explicit domain mappings first
 	for _, mapping := range gp.DomainMappings {
 		if mapping.Domain == host {
 			return mapping.Owner, mapping.Repository, filePath, mapping.Branch
 		}
 	}
-	
+
 	// Check auto-mapping if enabled
 	if gp.AutoMapping != nil && gp.AutoMapping.Enabled {
 		return gp.resolveAutoMapping(host, filePath)
 	}
-	
+
 	return "", "", "", ""
 }
 
 // resolveAutoMapping handles automatic domain-to-repository mapping
-func (gp *GiteaPages) resolveAutoMapping(host, filePath string) (owner, repo, newFilePath, branch string) {
+func (gp *GitteaPages) resolveAutoMapping(host, filePath string) (owner, repo, newFilePath, branch string) {
 	if gp.AutoMapping == nil {
 		return "", "", "", ""
 	}
-	
+
 	owner = gp.AutoMapping.Owner
 	branch = gp.AutoMapping.Branch
 	newFilePath = filePath
-	
+
 	// Parse the domain based on the pattern
 	switch gp.AutoMapping.Pattern {
 	case "{domain}":
 		// Direct domain mapping: example.com -> example.com repo
 		repo = gp.formatRepoName(host, gp.AutoMapping.RepoFormat)
-		
+
 	case "{subdomain}.{domain}":
 		// Subdomain mapping: blog.example.com -> blog repo
 		parts := strings.Split(host, ".")
@@ -428,7 +468,7 @@ func (gp *GiteaPages) resolveAutoMapping(host, filePath string) (owner, repo, ne
 			subdomain := parts[0]
 			repo = gp.formatRepoName(subdomain, gp.AutoMapping.RepoFormat)
 		}
-		
+
 	case "{user}.pages.{domain}":
 		// User pages: john.pages.example.com -> john/john.pages.example.com repo
 		parts := strings.Split(host, ".")
@@ -437,7 +477,7 @@ func (gp *GiteaPages) resolveAutoMapping(host, filePath string) (owner, repo, ne
 			owner = username
 			repo = gp.formatRepoName(host, gp.AutoMapping.RepoFormat)
 		}
-		
+
 	default:
 		// Custom pattern - basic template replacement
 		pattern := gp.AutoMapping.Pattern
@@ -452,49 +492,49 @@ func (gp *GiteaPages) resolveAutoMapping(host, filePath string) (owner, repo, ne
 		}
 		repo = pattern
 	}
-	
+
 	// Validate that we have both owner and repo
 	if owner == "" || repo == "" {
 		return "", "", "", ""
 	}
-	
+
 	return owner, repo, newFilePath, branch
 }
 
 // formatRepoName formats the repository name based on the format string
-func (gp *GiteaPages) formatRepoName(input, format string) string {
+func (gp *GitteaPages) formatRepoName(input, format string) string {
 	if format == "" {
 		return input
 	}
-	
+
 	// Simple template replacement
 	result := format
 	result = strings.ReplaceAll(result, "{domain}", input)
 	result = strings.ReplaceAll(result, "{subdomain}", input)
 	result = strings.ReplaceAll(result, "{input}", input)
-	
+
 	return result
 }
 
 // Validate validates the module configuration
-func (gp *GiteaPages) Validate() error {
-	if gp.GiteaURL == "" {
+func (gp *GitteaPages) Validate() error {
+	if gp.GitteaURL == "" {
 		return fmt.Errorf("gitea_url is required")
 	}
 	return nil
 }
 
 // UnmarshalCaddyfile implements caddyfile.Unmarshaler.
-func (gp *GiteaPages) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
+func (gp *GitteaPages) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	for d.Next() {
 		for d.NextBlock(0) {
 			switch d.Val() {
 			case "gitea_url":
-				if !d.Args(&gp.GiteaURL) {
+				if !d.Args(&gp.GitteaURL) {
 					return d.ArgErr()
 				}
 			case "gitea_token":
-				if !d.Args(&gp.GiteaToken) {
+				if !d.Args(&gp.GitteaToken) {
 					return d.ArgErr()
 				}
 			case "cache_dir":
@@ -577,7 +617,7 @@ func (gp *GiteaPages) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 
 // parseCaddyfile parses the Caddyfile configuration
 func parseCaddyfile(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error) {
-	var gp GiteaPages
+	var gp GitteaPages
 	err := gp.UnmarshalCaddyfile(h.Dispenser)
 	if err != nil {
 		return nil, err
@@ -587,8 +627,8 @@ func parseCaddyfile(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error)
 
 // Interface guards
 var (
-	_ caddy.Provisioner           = (*GiteaPages)(nil)
-	_ caddy.Validator            = (*GiteaPages)(nil)
-	_ caddyhttp.MiddlewareHandler = (*GiteaPages)(nil)
-	_ caddyfile.Unmarshaler      = (*GiteaPages)(nil)
+	_ caddy.Provisioner              = (*GitteaPages)(nil)
+	_ caddy.Validator                = (*GitteaPages)(nil)
+	_ caddyhttp.MiddlewareHandler    = (*GitteaPages)(nil)
+	_ caddyfile.Unmarshaler          = (*GitteaPages)(nil)
 )
