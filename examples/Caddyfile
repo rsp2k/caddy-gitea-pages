@@ -1,0 +1,112 @@
+# Example Caddyfile configuration for Gitea Pages with Custom Domain Mapping
+
+# Method 1: Explicit Domain Mappings
+# Map specific domains to specific repositories
+blog.example.com {
+    gitea_pages {
+        gitea_url https://git.example.com
+        gitea_token {env.GITEA_TOKEN}
+        domain_mapping blog.example.com johndoe blog-site
+        cache_ttl 15m
+    }
+}
+
+docs.example.com {
+    gitea_pages {
+        gitea_url https://git.example.com
+        gitea_token {env.GITEA_TOKEN}
+        domain_mapping docs.example.com myorg documentation main
+        cache_ttl 10m
+    }
+}
+
+# Method 2: Auto-mapping with subdomains
+# Pattern: {subdomain}.example.com -> user/{subdomain} repository
+*.example.com {
+    gitea_pages {
+        gitea_url https://git.example.com
+        gitea_token {env.GITEA_TOKEN}
+        auto_mapping {
+            enabled true
+            pattern {subdomain}.{domain}
+            owner myorg
+            repo_format {subdomain}
+            branch main
+        }
+        cache_ttl 15m
+    }
+}
+
+# Method 3: User pages pattern
+# Pattern: {user}.pages.example.com -> {user}/{user}.pages.example.com repository
+*.pages.example.com {
+    gitea_pages {
+        gitea_url https://git.example.com
+        gitea_token {env.GITEA_TOKEN}
+        auto_mapping {
+            enabled true
+            pattern {user}.pages.{domain}
+            repo_format {domain}
+        }
+    }
+}
+
+# Method 4: Direct domain mapping
+# Pattern: example.com -> owner/example.com repository
+example.com {
+    gitea_pages {
+        gitea_url https://git.example.com
+        gitea_token {env.GITEA_TOKEN}
+        auto_mapping {
+            enabled true
+            pattern {domain}
+            owner websites
+            repo_format {domain}
+        }
+    }
+}
+
+# Method 5: Mixed configuration with multiple mappings
+pages.example.com {
+    gitea_pages {
+        gitea_url https://git.example.com
+        gitea_token {env.GITEA_TOKEN}
+        
+        # Explicit mappings take precedence
+        domain_mapping blog.pages.example.com johndoe personal-blog gh-pages
+        domain_mapping portfolio.pages.example.com janedoe portfolio main
+        
+        # Auto-mapping for other subdomains
+        auto_mapping {
+            enabled true
+            pattern {subdomain}.pages.{domain}
+            owner sites
+            repo_format {subdomain}-site
+        }
+        
+        cache_ttl 20m
+        default_branch main
+        index_files index.html index.htm home.html
+    }
+    
+    # Fallback to path-based routing for non-matched domains
+    handle_path /repos/* {
+        gitea_pages {
+            gitea_url https://git.example.com
+            gitea_token {env.GITEA_TOKEN}
+        }
+    }
+}
+
+# Method 6: Custom pattern examples
+custom.example.com {
+    gitea_pages {
+        gitea_url https://git.example.com
+        gitea_token {env.GITEA_TOKEN}
+        
+        # Multiple explicit mappings
+        domain_mapping app.custom.example.com frontend web-app
+        domain_mapping api.custom.example.com backend api-docs
+        domain_mapping admin.custom.example.com admin admin-panel
+    }
+}
