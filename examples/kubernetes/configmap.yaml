@@ -1,0 +1,68 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: caddy-config
+  namespace: gitea-pages
+data:
+  Caddyfile: |
+    {
+      # Global options
+      email admin@example.com
+    }
+    
+    # Pages sites
+    *.pages.example.com {
+      gitea_pages {
+        gitea_url https://git.example.com
+        gitea_token {env.GITEA_TOKEN}
+        
+        auto_mapping {
+          enabled true
+          pattern {user}.pages.{domain}
+          repo_format {user}.pages.{domain}
+        }
+        
+        cache_ttl 20m
+        cache_dir /var/cache/gitea-pages
+      }
+      
+      # Security headers
+      header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        X-XSS-Protection "1; mode=block"
+      }
+      
+      encode gzip
+      
+      log {
+        output file /var/log/caddy/access.log {
+          roll_size 100mb
+          roll_keep 5
+        }
+        format json
+      }
+    }
+    
+    # Main documentation site
+    docs.example.com {
+      gitea_pages {
+        gitea_url https://git.example.com
+        gitea_token {env.GITEA_TOKEN}
+        domain_mapping docs.example.com engineering documentation
+        cache_ttl 1h
+        cache_dir /var/cache/gitea-pages
+      }
+    }
+    
+    # Health check endpoint
+    :8080 {
+      handle /health {
+        respond "OK" 200
+      }
+      
+      handle /metrics {
+        metrics
+      }
+    }

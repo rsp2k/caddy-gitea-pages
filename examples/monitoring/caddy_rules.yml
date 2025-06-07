@@ -1,0 +1,53 @@
+# Prometheus alerting rules for Caddy Gitea Pages
+groups:
+- name: caddy_gitea_pages
+  rules:
+  # High error rate
+  - alert: HighErrorRate
+    expr: rate(caddy_http_requests_total{status=~"5.."}[5m]) > 0.1
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High error rate detected"
+      description: "Error rate is {{ $value }} requests per second"
+  
+  # High response time
+  - alert: HighResponseTime
+    expr: histogram_quantile(0.95, rate(caddy_http_request_duration_seconds_bucket[5m])) > 2
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High response time detected"
+      description: "95th percentile response time is {{ $value }} seconds"
+  
+  # Service down
+  - alert: CaddyDown
+    expr: up{job="caddy-gitea-pages"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Caddy Gitea Pages is down"
+      description: "Caddy Gitea Pages has been down for more than 1 minute"
+  
+  # High cache miss rate
+  - alert: HighCacheMissRate
+    expr: rate(caddy_gitea_pages_cache_misses_total[5m]) / rate(caddy_gitea_pages_cache_requests_total[5m]) > 0.8
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High cache miss rate"
+      description: "Cache miss rate is {{ $value | humanizePercentage }}"
+  
+  # Disk space low
+  - alert: CacheDiskSpaceLow
+    expr: (node_filesystem_avail_bytes{mountpoint="/var/cache/gitea-pages"} / node_filesystem_size_bytes{mountpoint="/var/cache/gitea-pages"}) < 0.1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Cache disk space low"
+      description: "Cache disk space is {{ $value | humanizePercentage }} full"

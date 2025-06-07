@@ -1,0 +1,28 @@
+# Prometheus configuration for monitoring Caddy Gitea Pages
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "caddy_rules.yml"
+
+scrape_configs:
+  # Caddy metrics
+  - job_name: 'caddy-gitea-pages'
+    static_configs:
+      - targets: ['localhost:2019']  # Caddy admin port
+    metrics_path: /metrics
+    scrape_interval: 30s
+    
+  # Application metrics (if using custom metrics endpoint)
+  - job_name: 'gitea-pages-app'
+    static_configs:
+      - targets: ['localhost:8080']  # Health check port
+    metrics_path: /metrics
+    scrape_interval: 60s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093

@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: caddy-gitea-pages
+  namespace: gitea-pages
+  labels:
+    app: caddy-gitea-pages
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: caddy-gitea-pages
+  template:
+    metadata:
+      labels:
+        app: caddy-gitea-pages
+    spec:
+      containers:
+      - name: caddy
+        image: caddy-gitea-pages:latest
+        ports:
+        - containerPort: 80
+        - containerPort: 443
+        - containerPort: 8080  # Health check port
+        env:
+        - name: GITEA_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: gitea-credentials
+              key: gitea-token
+        volumeMounts:
+        - name: config
+          mountPath: /etc/caddy
+        - name: data
+          mountPath: /data
+        - name: cache
+          mountPath: /var/cache/gitea-pages
+        - name: logs
+          mountPath: /var/log/caddy
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+            add:
+            - NET_BIND_SERVICE
+      volumes:
+      - name: config
+        configMap:
+          name: caddy-config
+      - name: data
+        persistentVolumeClaim:
+          claimName: caddy-data
+      - name: cache
+        persistentVolumeClaim:
+          claimName: caddy-cache
+      - name: logs
+        emptyDir: {}
+      securityContext:
+        fsGroup: 1000

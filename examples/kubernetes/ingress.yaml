@@ -1,0 +1,46 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: caddy-gitea-pages-ingress
+  namespace: gitea-pages
+  annotations:
+    # Use nginx ingress controller
+    kubernetes.io/ingress.class: nginx
+    # Enable SSL
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    # Enable rate limiting
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    # Security headers
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      add_header X-Frame-Options DENY;
+      add_header X-Content-Type-Options nosniff;
+      add_header X-XSS-Protection "1; mode=block";
+      add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+spec:
+  tls:
+  - hosts:
+    - "*.pages.example.com"
+    - docs.example.com
+    secretName: gitea-pages-tls
+  rules:
+  - host: "*.pages.example.com"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: caddy-gitea-pages-service
+            port:
+              number: 80
+  - host: docs.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: caddy-gitea-pages-service
+            port:
+              number: 80

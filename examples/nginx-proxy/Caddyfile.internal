@@ -1,0 +1,46 @@
+# Internal Caddyfile for use behind nginx proxy
+{
+    # Disable automatic HTTPS since nginx handles it
+    auto_https off
+    # Listen on internal port
+    http_port 8080
+}
+
+:8080 {
+    gitea_pages {
+        gitea_url {env.GITEA_URL}
+        gitea_token {env.GITEA_TOKEN}
+        
+        # Auto-mapping for pages
+        auto_mapping {
+            enabled true
+            pattern {subdomain}.pages.{domain}
+            owner users
+            repo_format {subdomain}
+        }
+        
+        # Explicit mappings
+        domain_mapping pages.example.com admin main-site
+        
+        cache_ttl 15m
+        default_branch main
+    }
+    
+    # Health check endpoint
+    handle /health {
+        respond "OK" 200
+    }
+    
+    # Metrics endpoint (internal only)
+    handle /metrics {
+        metrics
+    }
+    
+    log {
+        output file /var/log/caddy/gitea-pages.log {
+            roll_size 50mb
+            roll_keep 3
+        }
+        format json
+    }
+}
