@@ -23,6 +23,7 @@ import (
 func init() {
 	caddy.RegisterModule(GitteaPages{})
 	httpcaddyfile.RegisterHandlerDirective("gitea_pages", parseCaddyfile)
+	httpcaddyfile.RegisterDirectiveOrder("gitea_pages", httpcaddyfile.Before, "file_server")
 }
 
 // GitteaPages implements GitHub Pages functionality for Gitea
