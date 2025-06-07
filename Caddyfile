@@ -1,0 +1,11 @@
+{
+	http_port 8080
+}
+
+pages.l.supported.systems:8443 {
+	gitea_pages {
+		gitea_url https://git.supported.systems
+		gitea_token 111c92bd0614a0883ff67b3589fc5cd7552204a7
+		cache_ttl 1m
+	}
+}
