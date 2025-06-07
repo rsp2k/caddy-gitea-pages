@@ -1,5 +1,10 @@
 # Caddy Gitea Pages Module
 
+[![Test](https://github.com/rsp2k/caddy-gitea-pages/actions/workflows/test.yml/badge.svg)](https://github.com/rsp2k/caddy-gitea-pages/actions/workflows/test.yml)
+[![Release](https://github.com/rsp2k/caddy-gitea-pages/actions/workflows/release.yml/badge.svg)](https://github.com/rsp2k/caddy-gitea-pages/actions/workflows/release.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/rsp2k/caddy-gitea-pages)](https://goreportcard.com/report/github.com/rsp2k/caddy-gitea-pages)
+[![Go Reference](https://pkg.go.dev/badge/github.com/rsp2k/caddy-gitea-pages.svg)](https://pkg.go.dev/github.com/rsp2k/caddy-gitea-pages)
+
 A Caddy module that implements GitHub Pages-like functionality for self-hosted Gitea installations. This module allows you to serve static websites directly from Gitea repositories, similar to how GitHub Pages works.
 
 ## Features
