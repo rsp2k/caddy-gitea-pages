@@ -32,6 +32,9 @@ jobs:
           ${{ runner.os }}-go-${{ matrix.go-version }}-
           ${{ runner.os }}-go-
     
+    - name: Tidy dependencies
+      run: go mod tidy
+    
     - name: Download dependencies
       run: go mod download
     
@@ -91,6 +94,9 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-go-1.22-
           ${{ runner.os }}-go-
+    
+    - name: Tidy dependencies
+      run: go mod tidy
     
     - name: Download dependencies
       run: go mod download
