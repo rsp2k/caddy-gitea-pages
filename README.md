@@ -54,6 +54,17 @@ xcaddy build --with github.com/rsp2k/caddy-gitea-pages
 pages.example.com {
     gitea_pages {
         gitea_url https://git.example.com
+        gitea_token your_gitea_access_token_here
+        cache_ttl 15m
+    }
+}
+```
+
+You can also use environment variables for the token:
+```caddyfile
+pages.example.com {
+    gitea_pages {
+        gitea_url https://git.example.com
         gitea_token {env.GITEA_TOKEN}
         cache_ttl 15m
     }
@@ -108,12 +119,28 @@ gitea_pages {
 | `repo_format` | Repository name format | `{subdomain}`, `{domain}`, `{input}` |
 | `branch` | Branch override for auto-mapped repos | `main` |
 
-### Environment Variables
+### Token Configuration
 
-Set your Gitea token as an environment variable:
+You have two options for configuring the Gitea token:
 
+#### Option 1: Direct in Caddyfile
+```caddyfile
+gitea_pages {
+    gitea_url https://git.example.com
+    gitea_token your_actual_token_here
+}
+```
+
+#### Option 2: Environment Variable (Recommended)
 ```bash
 export GITEA_TOKEN=your_gitea_access_token_here
+```
+
+```caddyfile
+gitea_pages {
+    gitea_url https://git.example.com
+    gitea_token {env.GITEA_TOKEN}
+}
 ```
 
 ## Usage Patterns
@@ -133,6 +160,7 @@ Serves: Files from the repository's default branch
 blog.example.com {
     gitea_pages {
         gitea_url https://git.example.com
+        gitea_token your_token_here
         domain_mapping blog.example.com johndoe personal-blog
     }
 }
@@ -146,6 +174,7 @@ blog.example.com {
 *.example.com {
     gitea_pages {
         gitea_url https://git.example.com
+        gitea_token your_token_here
         auto_mapping {
             enabled true
             pattern {subdomain}.{domain}
@@ -167,6 +196,7 @@ blog.example.com {
 *.pages.example.com {
     gitea_pages {
         gitea_url https://git.example.com
+        gitea_token your_token_here
         auto_mapping {
             enabled true
             pattern {user}.pages.{domain}
@@ -186,6 +216,7 @@ blog.example.com {
 example.com {
     gitea_pages {
         gitea_url https://git.example.com
+        gitea_token your_token_here
         auto_mapping {
             enabled true
             pattern {domain}
@@ -204,6 +235,7 @@ example.com {
 *.example.com {
     gitea_pages {
         gitea_url https://git.example.com
+        gitea_token your_token_here
         
         # Explicit mappings (highest priority)
         domain_mapping blog.example.com johndoe personal-blog
@@ -234,6 +266,7 @@ example.com {
 *.pages.example.com {
     gitea_pages {
         gitea_url https://git.example.com
+        gitea_token your_token_here
         auto_mapping {
             enabled true
             pattern {user}.pages.{domain}
@@ -250,6 +283,7 @@ example.com {
 *.projects.example.com {
     gitea_pages {
         gitea_url https://git.example.com
+        gitea_token your_token_here
         auto_mapping {
             enabled true
             pattern {project}.projects.{domain}
@@ -265,9 +299,10 @@ example.com {
 
 ```caddyfile
 # Main corporate sites
-{
+*.example.com {
     gitea_pages {
         gitea_url https://git.example.com
+        gitea_token your_token_here
         
         # Main website
         domain_mapping example.com corporate main-website
@@ -306,7 +341,7 @@ For private repositories: Token with repository read access
 1. Go to your Gitea instance
 2. Navigate to Settings → Applications
 3. Generate a new token with repository permissions
-4. Set the token as an environment variable
+4. Use the token in your Caddyfile configuration
 
 ## Caching Strategy
 
@@ -323,7 +358,7 @@ The module implements a two-level caching system:
 
 ## Security Considerations
 
-- **Token Security**: Store Gitea tokens as environment variables
+- **Token Security**: Use environment variables for tokens in production
 - **Repository Access**: Module respects Gitea's repository permissions
 - **Path Traversal**: Built-in protection against directory traversal attacks
 - **Rate Limiting**: Consider implementing rate limiting for high-traffic sites
@@ -356,7 +391,7 @@ Enable debug logging in your Caddyfile:
 pages.example.com {
     gitea_pages {
         gitea_url https://git.example.com
-        gitea_token {env.GITEA_TOKEN}
+        gitea_token your_token_here
     }
     
     log {
