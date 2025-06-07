@@ -1,0 +1,64 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+    
+    - name: Install xcaddy
+      run: go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
+    
+    - name: Build binaries
+      run: |
+        # Build for multiple platforms
+        GOOS=linux GOARCH=amd64 xcaddy build --with github.com/rsp2k/caddy-gitea-pages=. --output caddy-linux-amd64
+        GOOS=linux GOARCH=arm64 xcaddy build --with github.com/rsp2k/caddy-gitea-pages=. --output caddy-linux-arm64
+        GOOS=darwin GOARCH=amd64 xcaddy build --with github.com/rsp2k/caddy-gitea-pages=. --output caddy-darwin-amd64
+        GOOS=darwin GOARCH=arm64 xcaddy build --with github.com/rsp2k/caddy-gitea-pages=. --output caddy-darwin-arm64
+        GOOS=windows GOARCH=amd64 xcaddy build --with github.com/rsp2k/caddy-gitea-pages=. --output caddy-windows-amd64.exe
+    
+    - name: Create checksums
+      run: |
+        sha256sum caddy-* > checksums.txt
+    
+    - name: Generate release notes
+      id: generate_notes
+      run: |
+        echo "## Changes" > release_notes.md
+        echo "" >> release_notes.md
+        git log --pretty=format:"- %s" $(git describe --tags --abbrev=0 HEAD^)..HEAD >> release_notes.md
+        echo "" >> release_notes.md
+        echo "## Installation" >> release_notes.md
+        echo "" >> release_notes.md
+        echo "Download the appropriate binary for your platform and use it as a drop-in replacement for Caddy." >> release_notes.md
+        echo "" >> release_notes.md
+        echo "Or build from source:" >> release_notes.md
+        echo '```bash' >> release_notes.md
+        echo "xcaddy build --with github.com/rsp2k/caddy-gitea-pages@${{ github.ref_name }}" >> release_notes.md
+        echo '```' >> release_notes.md
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        body_path: release_notes.md
+        files: |
+          caddy-*
+          checksums.txt
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
