@@ -1,7 +1,6 @@
 package giteapages
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -485,48 +484,46 @@ func (gp *GiteaPages) Validate() error {
 	return nil
 }
 
-// parseCaddyfile parses the Caddyfile configuration
-func parseCaddyfile(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error) {
-	var gp GiteaPages
-	
-	for h.Next() {
-		for h.NextBlock(0) {
-			switch h.Val() {
+// UnmarshalCaddyfile implements caddyfile.Unmarshaler.
+func (gp *GiteaPages) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
+	for d.Next() {
+		for d.NextBlock(0) {
+			switch d.Val() {
 			case "gitea_url":
-				if !h.Args(&gp.GiteaURL) {
-					return nil, h.ArgErr()
+				if !d.Args(&gp.GiteaURL) {
+					return d.ArgErr()
 				}
 			case "gitea_token":
-				if !h.Args(&gp.GiteaToken) {
-					return nil, h.ArgErr()
+				if !d.Args(&gp.GiteaToken) {
+					return d.ArgErr()
 				}
 			case "cache_dir":
-				if !h.Args(&gp.CacheDir) {
-					return nil, h.ArgErr()
+				if !d.Args(&gp.CacheDir) {
+					return d.ArgErr()
 				}
 			case "cache_ttl":
 				var ttl string
-				if !h.Args(&ttl) {
-					return nil, h.ArgErr()
+				if !d.Args(&ttl) {
+					return d.ArgErr()
 				}
 				duration, err := time.ParseDuration(ttl)
 				if err != nil {
-					return nil, h.Errf("invalid cache_ttl: %v", err)
+					return d.Errf("invalid cache_ttl: %v", err)
 				}
 				gp.CacheTTL = caddy.Duration(duration)
 			case "default_branch":
-				if !h.Args(&gp.DefaultBranch) {
-					return nil, h.ArgErr()
+				if !d.Args(&gp.DefaultBranch) {
+					return d.ArgErr()
 				}
 			case "index_files":
-				gp.IndexFiles = h.RemainingArgs()
+				gp.IndexFiles = d.RemainingArgs()
 				if len(gp.IndexFiles) == 0 {
-					return nil, h.ArgErr()
+					return d.ArgErr()
 				}
 			case "domain_mapping":
-				args := h.RemainingArgs()
+				args := d.RemainingArgs()
 				if len(args) < 3 {
-					return nil, h.ArgErr()
+					return d.ArgErr()
 				}
 				mapping := DomainMapping{
 					Domain:     args[0],
@@ -541,40 +538,50 @@ func parseCaddyfile(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error)
 				if gp.AutoMapping == nil {
 					gp.AutoMapping = &AutoMapping{}
 				}
-				for h.NextBlock(1) {
-					switch h.Val() {
+				for d.NextBlock(1) {
+					switch d.Val() {
 					case "enabled":
 						var enabled string
-						if !h.Args(&enabled) {
-							return nil, h.ArgErr()
+						if !d.Args(&enabled) {
+							return d.ArgErr()
 						}
 						gp.AutoMapping.Enabled = enabled == "true"
 					case "pattern":
-						if !h.Args(&gp.AutoMapping.Pattern) {
-							return nil, h.ArgErr()
+						if !d.Args(&gp.AutoMapping.Pattern) {
+							return d.ArgErr()
 						}
 					case "owner":
-						if !h.Args(&gp.AutoMapping.Owner) {
-							return nil, h.ArgErr()
+						if !d.Args(&gp.AutoMapping.Owner) {
+							return d.ArgErr()
 						}
 					case "repo_format":
-						if !h.Args(&gp.AutoMapping.RepoFormat) {
-							return nil, h.ArgErr()
+						if !d.Args(&gp.AutoMapping.RepoFormat) {
+							return d.ArgErr()
 						}
 					case "branch":
-						if !h.Args(&gp.AutoMapping.Branch) {
-							return nil, h.ArgErr()
+						if !d.Args(&gp.AutoMapping.Branch) {
+							return d.ArgErr()
 						}
 					default:
-						return nil, h.Errf("unknown auto_mapping subdirective: %s", h.Val())
+						return d.Errf("unknown auto_mapping subdirective: %s", d.Val())
 					}
 				}
 			default:
-				return nil, h.Errf("unknown subdirective: %s", h.Val())
+				return d.Errf("unknown subdirective: %s", d.Val())
 			}
 		}
 	}
 
+	return nil
+}
+
+// parseCaddyfile parses the Caddyfile configuration
+func parseCaddyfile(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error) {
+	var gp GiteaPages
+	err := gp.UnmarshalCaddyfile(h.Dispenser)
+	if err != nil {
+		return nil, err
+	}
 	return &gp, nil
 }
 
