@@ -132,7 +132,7 @@ jobs:
         go-version: '1.22.x'
     # Install Gosec directly instead of using the invalid action
     - name: Install Gosec
-      run: go install github.com/securecode/gosec/v2/cmd/gosec@latest
+      run: go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
     - name: Run Gosec Security Scanner
       run: gosec ./...
 
