@@ -1,18 +1,14 @@
 # .golangci.yml
-# GolangCI-Lint configuration based on Caddy best practices
+# Modern golangci-lint configuration compatible with latest versions
 
 run:
   timeout: 5m
   issues-exit-code: 1
   tests: true
-  skip-dirs:
-    - vendor
-    - testdata
-  skip-files:
-    - ".*_test.go"
+  # Note: skip-dirs and skip-files are deprecated, use issues.exclude-dirs instead
 
 output:
-  format: colored-line-number
+  # Note: format is deprecated, use --out-format flag instead
   print-issued-lines: true
   print-linter-name: true
 
@@ -62,16 +58,8 @@ linters-settings:
   goimports:
     local-prefixes: github.com/rsp2k/caddy-gitea-pages
   
-  golint:
-    min-confidence: 0
-  
-  gomnd:
-    settings:
-      mnd:
-        checks: argument,case,condition,operation,return,assign
-  
   govet:
-    check-shadowing: true
+    # Note: check-shadowing is deprecated, use 'shadow' linter instead
     settings:
       printf:
         funcs:
@@ -83,23 +71,38 @@ linters-settings:
   lll:
     line-length: 140
   
-  maligned:
-    suggest-new: true
-  
   misspell:
     locale: US
   
   nolintlint:
-    allow-leading-space: true
+    # Note: allow-leading-space is deprecated
     allow-unused: false
     require-explanation: false
     require-specific: false
+
+  revive:
+    min-confidence: 0
+    rules:
+      - name: exported
+        arguments: [true]
+      - name: var-naming
+      - name: package-comments
+      - name: dot-imports
+      - name: blank-imports
+      - name: exported
+      - name: var-declaration
+      - name: package-comments
+      - name: increment-decrement
+      - name: error-return
+      - name: error-naming
+      - name: receiver-naming
+      - name: indent-error-flow
 
 linters:
   disable-all: true
   enable:
     - bodyclose
-    - deadcode
+    - deadcode  # Note: may be deprecated in newer versions
     - depguard
     - dogsled
     - dupl
@@ -112,8 +115,7 @@ linters:
     - gocyclo
     - gofmt
     - goimports
-    - golint
-    - gomnd
+    - revive  # Replaces golint
     - goprintffuncname
     - gosec
     - gosimple
@@ -142,23 +144,46 @@ linters:
     - godot
     - godox
     - goerr113
-    - maligned
     - nestif
     - prealloc
     - testpackage
-    - revive
+    - wsl
+    - gofumpt
+    - goheader
+    - gomodguard
+    - gomoddirectives
+    - goworkspace
+    - grouper
+    - importas
+    - maintidx
+    - makezero
+    - nlreturn
+    - nilerr
+    - nilnil
+    - nosprintfhostport
+    - predeclared
+    - promlinter
+    - reassign
+    - sqlclosecheck
+    - tenv
+    - tparallel
+    - unconvert
+    - unparam
+    - usestdlibvars
+    - wastedassign
 
 issues:
+  # Disable specific rules for test files
   exclude-rules:
     - path: _test\.go
       linters:
-        - gomnd
         - funlen
         - goconst
         - gocyclo
         - errcheck
         - dupl
         - gosec
+        - gocritic
     - path: example_.*_test\.go
       linters:
         - govet
@@ -168,6 +193,12 @@ issues:
     - linters:
         - lll
       source: "^//go:generate "
+  
+  # Exclude some directories
+  exclude-dirs:
+    - vendor
+    - testdata
+    - examples
   
   exclude-use-default: false
   max-issues-per-linter: 0
