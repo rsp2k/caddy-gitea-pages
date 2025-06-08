@@ -29,7 +29,7 @@ type TestHelper struct {
 	t       *testing.T
 	tempDir string
 	server  *httptest.Server
-	gp      *GiteaPages
+	gp      *GitteaPages
 }
 
 // NewTestHelper creates a new test helper instance
@@ -114,7 +114,7 @@ func (th *TestHelper) handleRepoAPI(w http.ResponseWriter, r *http.Request, repo
 	}
 
 	// Return repository info
-	giteaRepo := GiteaRepo{
+	giteaRepo := GitteaRepo{
 		Name:          repo.Name,
 		FullName:      repo.FullName,
 		DefaultBranch: repo.DefaultBranch,
@@ -207,19 +207,19 @@ func (th *TestHelper) createTestArchive(repo MockRepo) []byte {
 	return buf.Bytes()
 }
 
-// SetupGiteaPages creates and provisions a GiteaPages instance for testing
-func (th *TestHelper) SetupGiteaPages(config GiteaPagesConfig) *GiteaPages {
+// SetupGiteaPages creates and provisions a GitteaPages instance for testing
+func (th *TestHelper) SetupGiteaPages(config GitteaPagesConfig) *GitteaPages {
 	th.t.Helper()
 
-	gp := &GiteaPages{
-		GiteaURL:        config.GiteaURL,
-		GiteaToken:      config.GiteaToken,
-		CacheDir:        filepath.Join(th.tempDir, "cache"),
-		CacheTTL:        caddy.Duration(config.CacheTTL),
-		DefaultBranch:   config.DefaultBranch,
-		IndexFiles:      config.IndexFiles,
-		DomainMappings:  config.DomainMappings,
-		AutoMapping:     config.AutoMapping,
+	gp := &GitteaPages{
+		GitteaURL:        config.GitteaURL,
+		GitteaToken:      config.GitteaToken,
+		CacheDir:         filepath.Join(th.tempDir, "cache"),
+		CacheTTL:         caddy.Duration(config.CacheTTL),
+		DefaultBranch:    config.DefaultBranch,
+		IndexFiles:       config.IndexFiles,
+		DomainMappings:   config.DomainMappings,
+		AutoMapping:      config.AutoMapping,
 	}
 
 	if gp.DefaultBranch == "" {
@@ -237,22 +237,22 @@ func (th *TestHelper) SetupGiteaPages(config GiteaPagesConfig) *GiteaPages {
 	// Provision the module
 	ctx := caddy.Context{}
 	if err := gp.Provision(ctx); err != nil {
-		th.t.Fatalf("Failed to provision GiteaPages: %v", err)
+		th.t.Fatalf("Failed to provision GitteaPages: %v", err)
 	}
 
 	th.gp = gp
 	return gp
 }
 
-// GiteaPagesConfig holds configuration for test setup
-type GiteaPagesConfig struct {
-	GiteaURL       string
-	GiteaToken     string
-	CacheTTL       time.Duration
-	DefaultBranch  string
-	IndexFiles     []string
-	DomainMappings []DomainMapping
-	AutoMapping    *AutoMapping
+// GitteaPagesConfig holds configuration for test setup
+type GitteaPagesConfig struct {
+	GitteaURL       string
+	GitteaToken     string
+	CacheTTL        time.Duration
+	DefaultBranch   string
+	IndexFiles      []string
+	DomainMappings  []DomainMapping
+	AutoMapping     *AutoMapping
 }
 
 // MakeHTTPRequest creates and executes an HTTP request for testing
@@ -334,11 +334,11 @@ func (th *TestHelper) CreateCacheEntry(repoKey, branch string, files map[string]
 }
 
 // ParseCaddyfile parses a Caddyfile string for testing
-func (th *TestHelper) ParseCaddyfile(caddyfileContent string) *GiteaPages {
+func (th *TestHelper) ParseCaddyfile(caddyfileContent string) *GitteaPages {
 	th.t.Helper()
 
 	d := caddyfile.NewTestDispenser(caddyfileContent)
-	gp := new(GiteaPages)
+	gp := new(GitteaPages)
 
 	err := gp.UnmarshalCaddyfile(d)
 	if err != nil {
@@ -412,7 +412,7 @@ func NewBenchmarkHelper(b *testing.B) *BenchmarkHelper {
 }
 
 // SetupBenchmarkData creates test data for benchmarking
-func (bh *BenchmarkHelper) SetupBenchmarkData(fileCount int, fileSize int) *GiteaPages {
+func (bh *BenchmarkHelper) SetupBenchmarkData(fileCount int, fileSize int) *GitteaPages {
 	bh.b.Helper()
 
 	// Create test files
@@ -437,7 +437,7 @@ func (bh *BenchmarkHelper) SetupBenchmarkData(fileCount int, fileSize int) *Gite
 		}
 	}
 
-	gp := &GiteaPages{
+	gp := &GitteaPages{
 		cache: &repoCache{
 			repos: map[string]*cacheEntry{
 				"bench/repo:main": {
