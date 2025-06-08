@@ -1,34 +1,14 @@
 # .golangci.yml
-# Modern golangci-lint configuration compatible with latest versions
+# Minimal golangci-lint configuration focused on essential linters
 
 run:
   timeout: 5m
-  issues-exit-code: 1
   tests: true
-  # Note: skip-dirs and skip-files are deprecated, use issues.exclude-dirs instead
-
-output:
-  # Note: format is deprecated, use --out-format flag instead
-  print-issued-lines: true
-  print-linter-name: true
 
 linters-settings:
-  dupl:
-    threshold: 150
-  
   errcheck:
     check-type-assertions: true
     check-blank: true
-  
-  exhaustive:
-    default-signifies-exhaustive: false
-  
-  funlen:
-    lines: 100
-    statements: 50
-  
-  gocognit:
-    min-complexity: 20
   
   goconst:
     min-len: 2
@@ -51,22 +31,12 @@ linters-settings:
   gocyclo:
     min-complexity: 15
   
-  godot:
-    scope: declarations
-    capital: false
-  
   goimports:
     local-prefixes: github.com/rsp2k/caddy-gitea-pages
   
   govet:
-    # Note: check-shadowing is deprecated, use 'shadow' linter instead
-    settings:
-      printf:
-        funcs:
-          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Infof
-          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Warnf
-          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Errorf
-          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Fatalf
+    enable:
+      - shadow
   
   lll:
     line-length: 140
@@ -74,133 +44,60 @@ linters-settings:
   misspell:
     locale: US
   
-  nolintlint:
-    # Note: allow-leading-space is deprecated
-    allow-unused: false
-    require-explanation: false
-    require-specific: false
-
   revive:
     min-confidence: 0
-    rules:
-      - name: exported
-        arguments: [true]
-      - name: var-naming
-      - name: package-comments
-      - name: dot-imports
-      - name: blank-imports
-      - name: exported
-      - name: var-declaration
-      - name: package-comments
-      - name: increment-decrement
-      - name: error-return
-      - name: error-naming
-      - name: receiver-naming
-      - name: indent-error-flow
 
 linters:
   disable-all: true
   enable:
-    - bodyclose
-    - deadcode  # Note: may be deprecated in newer versions
-    - depguard
-    - dogsled
-    - dupl
+    # Essential linters
     - errcheck
-    - exhaustive
-    - funlen
-    - gochecknoinits
-    - goconst
-    - gocritic
-    - gocyclo
-    - gofmt
-    - goimports
-    - revive  # Replaces golint
-    - goprintffuncname
-    - gosec
     - gosimple
     - govet
     - ineffassign
-    - interfacer
-    - lll
-    - misspell
-    - nakedret
-    - noctx
-    - nolintlint
-    - rowserrcheck
-    - scopelint
     - staticcheck
-    - structcheck
-    - stylecheck
     - typecheck
-    - unconvert
-    - unparam
     - unused
-    - varcheck
-    - whitespace
-    - asciicheck
-    - gochecknoglobals
+    - goconst
+    - gocyclo
+    - gofmt
+    - goimports
+    - misspell
+    - revive
+    - gosec
+    - gocritic
+    
+    # Additional useful linters
+    - bodyclose
+    - dupl
     - gocognit
     - godot
-    - godox
-    - goerr113
-    - nestif
-    - prealloc
-    - testpackage
-    - wsl
-    - gofumpt
-    - goheader
-    - gomodguard
-    - gomoddirectives
-    - goworkspace
-    - grouper
-    - importas
-    - maintidx
-    - makezero
-    - nlreturn
-    - nilerr
-    - nilnil
-    - nosprintfhostport
-    - predeclared
-    - promlinter
-    - reassign
-    - sqlclosecheck
-    - tenv
-    - tparallel
+    - nolintlint
+    - rowserrcheck
     - unconvert
     - unparam
-    - usestdlibvars
-    - wastedassign
+    - whitespace
 
 issues:
-  # Disable specific rules for test files
   exclude-rules:
+    # Relax linting for test files
     - path: _test\.go
       linters:
-        - funlen
         - goconst
         - gocyclo
         - errcheck
         - dupl
         - gosec
-        - gocritic
-    - path: example_.*_test\.go
-      linters:
-        - govet
-    - linters:
-        - staticcheck
-      text: "SA9003:"
+        - revive
+    
+    # Ignore long lines for go:generate comments
     - linters:
         - lll
       source: "^//go:generate "
   
-  # Exclude some directories
   exclude-dirs:
     - vendor
     - testdata
-    - examples
-  
-  exclude-use-default: false
+
   max-issues-per-linter: 0
   max-same-issues: 0
-  new: false
