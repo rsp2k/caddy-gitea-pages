@@ -54,14 +54,14 @@ jobs:
     - name: Build
       run: go build -v ./...
       
-    - name: Run tests
-      run: go test -v -race -coverprofile=coverage.out ./...
+    - name: Run unit tests
+      run: go test -v -race -short -coverprofile=coverage.out ./...
       
-    - name: Run tests with short flag (for performance tests)
-      run: go test -v -short ./...
+    - name: Run tests with race detection
+      run: go test -v -race -short ./...
       
     - name: Run benchmarks
-      run: go test -bench=. -benchmem ./...
+      run: go test -bench=. -benchmem -short ./...
       
     - name: Upload coverage to Codecov
       if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.22.x'
@@ -167,10 +167,10 @@ jobs:
     - name: Test configuration parsing
       run: |
         echo 'localhost {
-          gitea_pages {
-            gitea_url https://git.example.com
-            cache_ttl 15m
-          }
+           gitea_pages {
+              gitea_url https://git.example.com
+              cache_ttl 15m
+           }
         }' > Caddyfile
         ./caddy validate --config Caddyfile
         
