@@ -62,12 +62,12 @@ func (th *TestHelper) CreateMockGiteaServer(repos map[string]MockRepo) {
 
 // MockRepo represents a mock repository configuration
 type MockRepo struct {
-	Name          string
-	FullName      string
-	DefaultBranch string
-	Files         map[string]string
-	Private       bool
-	RequireToken  bool
+	Name           string
+	FullName       string
+	DefaultBranch  string
+	Files          map[string]string
+	Private        bool
+	RequireToken   bool
 }
 
 func (th *TestHelper) handleMockGiteaRequest(w http.ResponseWriter, r *http.Request, repos map[string]MockRepo) {
@@ -212,14 +212,14 @@ func (th *TestHelper) SetupGiteaPages(config GiteaPagesConfig) *GiteaPages {
 	th.t.Helper()
 	
 	gp := &GiteaPages{
-		GiteaURL:       config.GiteaURL,
-		GiteaToken:     config.GiteaToken,
-		CacheDir:       filepath.Join(th.tempDir, "cache"),
-		CacheTTL:       caddy.Duration(config.CacheTTL),
-		DefaultBranch:  config.DefaultBranch,
-		IndexFiles:     config.IndexFiles,
-		DomainMappings: config.DomainMappings,
-		AutoMapping:    config.AutoMapping,
+		GiteaURL:        config.GiteaURL,
+		GiteaToken:      config.GiteaToken,
+		CacheDir:        filepath.Join(th.tempDir, "cache"),
+		CacheTTL:        caddy.Duration(config.CacheTTL),
+		DefaultBranch:   config.DefaultBranch,
+		IndexFiles:      config.IndexFiles,
+		DomainMappings:  config.DomainMappings,
+		AutoMapping:     config.AutoMapping,
 	}
 	
 	if gp.DefaultBranch == "" {
@@ -348,6 +348,24 @@ func (th *TestHelper) ParseCaddyfile(caddyfileContent string) *GiteaPages {
 	return gp
 }
 
+// GetLineNumberInPullRequestFile finds line numbers in pull request files for testing
+// This is a mock implementation for testing purposes
+func (th *TestHelper) GetLineNumberInPullRequestFile(owner, repo string, pullNumber int, path, content string) (int, error) {
+	th.t.Helper()
+	
+	// For testing purposes, return a mock line number based on content
+	// In a real implementation, this would parse the PR diff and find the actual line number
+	lines := strings.Split(content, "\n")
+	
+	// Return the middle line number for consistency in tests
+	if len(lines) > 0 {
+		return (len(lines) / 2) + 1, nil
+	}
+	
+	// Default to line 10 for empty content
+	return 10, nil
+}
+
 // TestSecurityScenario tests various security attack scenarios
 func (th *TestHelper) TestSecurityScenario(scenario SecurityTestScenario) {
 	th.t.Helper()
@@ -441,13 +459,13 @@ func GenerateTestRepos() map[string]MockRepo {
 			FullName:      "user/website",
 			DefaultBranch: "main",
 			Files: map[string]string{
-				"index.html":         "<h1>Welcome to My Website</h1>",
-				"about.html":         "<h1>About Us</h1>",
-				"contact.html":       "<h1>Contact</h1>",
-				"css/style.css":      "body { font-family: Arial; }",
-				"js/script.js":       "console.log('Hello World');",
-				"images/logo.png":    "PNG_DATA_HERE",
-				"assets/data.json":   `{"name": "test"}`,
+				"index.html":          "<h1>Welcome to My Website</h1>",
+				"about.html":          "<h1>About Us</h1>",
+				"contact.html":        "<h1>Contact</h1>",
+				"css/style.css":       "body { font-family: Arial; }",
+				"js/script.js":        "console.log('Hello World');",
+				"images/logo.png":     "PNG_DATA_HERE",
+				"assets/data.json":    `{"name": "test"}`,
 			},
 		},
 		"org/blog": {
@@ -468,8 +486,8 @@ func GenerateTestRepos() map[string]MockRepo {
 			Private:       true,
 			RequireToken:  true,
 			Files: map[string]string{
-				"index.html":    "<h1>Private Site</h1>",
-				"secret.html":   "<h1>Secret Content</h1>",
+				"index.html":  "<h1>Private Site</h1>",
+				"secret.html": "<h1>Secret Content</h1>",
 			},
 		},
 	}
