@@ -24,19 +24,19 @@ func TestGiteaPages_Integration_CompleteFlow(t *testing.T) {
 
 	// Configure GiteaPages
 	gp := helper.SetupGiteaPages(GiteaPagesConfig{
-		GiteaURL:      helper.server.URL,
-		GiteaToken:    "test-token",
-		CacheTTL:      5 * time.Minute,
-		DefaultBranch: "main",
+		GiteaURL:       helper.server.URL,
+		GiteaToken:     "test-token",
+		CacheTTL:       5 * time.Minute,
+		DefaultBranch:  "main",
 	})
 
 	// Pre-populate cache to avoid needing external network calls
 	helper.CreateCacheEntry("user/website", "main", map[string]string{
-		"index.html":   "<h1>Welcome to My Website</h1>",
-		"about.html":   "<h1>About Us</h1>",
-		"css/style.css": "body { font-family: Arial; }",
+		"index.html":     "<h1>Welcome to My Website</h1>",
+		"about.html":     "<h1>About Us</h1>",
+		"css/style.css":  "body { font-family: Arial; }",
 	})
-	
+
 	helper.CreateCacheEntry("org/blog", "gh-pages", map[string]string{
 		"index.html": "<h1>Blog Home</h1>",
 	})
@@ -117,7 +117,7 @@ func TestGiteaPages_Security_PathTraversalPrevention(t *testing.T) {
 			},
 			{
 				Name:          "windows_traversal",
-				Path:          "/test/repo/..\\..\\..\\windows\\system32\\config\\sam",
+				Path:          "/test/repo/..\\\\..\\\\..\\\\windows\\\\system32\\\\config\\\\sam",
 				SensitiveData: "SAM",
 			},
 		},
@@ -140,11 +140,11 @@ func TestGiteaPages_Security_PrivateRepoAccess(t *testing.T) {
 	// Setup mock server with private repo
 	repos := map[string]MockRepo{
 		"company/private": {
-			Name:          "private",
-			FullName:      "company/private",
+			Name:         "private",
+			FullName:     "company/private",
 			DefaultBranch: "main",
-			Private:       true,
-			RequireToken:  true,
+			Private:      true,
+			RequireToken: true,
 			Files: map[string]string{
 				"index.html": "<h1>Private Content</h1>",
 			},
@@ -382,11 +382,11 @@ func TestGiteaPages_ErrorHandling(t *testing.T) {
 
 			// Try to trigger cache update which should fail
 			err := gp.updateRepoCache("test", "repo", "main")
-			
+
 			if tt.expectedError && err == nil {
 				t.Error("Expected error but got none")
 			}
-			
+
 			if !tt.expectedError && err != nil {
 				t.Errorf("Expected no error but got: %v", err)
 			}
@@ -417,8 +417,8 @@ func TestGiteaPages_IndexFileResolution(t *testing.T) {
 		{
 			name: "fallback_to_index_htm",
 			files: map[string]string{
-				"index.htm":     "<h1>HTM Index</h1>",
-				"default.html":  "<h1>Default</h1>",
+				"index.htm":    "<h1>HTM Index</h1>",
+				"default.html": "<h1>Default</h1>",
 			},
 			indexFiles:    []string{"index.html", "index.htm", "default.html"},
 			expectedIndex: "index.htm",
@@ -436,7 +436,7 @@ func TestGiteaPages_IndexFileResolution(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			helper.CreateCacheEntry("test/website", "main", tt.files)
-			
+
 			gp := helper.SetupGiteaPages(GiteaPagesConfig{
 				GiteaURL:      "https://git.example.com",
 				DefaultBranch: "main",
