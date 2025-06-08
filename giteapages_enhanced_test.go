@@ -23,11 +23,11 @@ func TestGiteaPages_Integration_CompleteFlow(t *testing.T) {
 	helper.CreateMockGiteaServer(repos)
 
 	// Configure GiteaPages
-	gp := helper.SetupGiteaPages(GiteaPagesConfig{
-		GiteaURL:       helper.server.URL,
-		GiteaToken:     "test-token",
-		CacheTTL:       5 * time.Minute,
-		DefaultBranch:  "main",
+	_ = helper.SetupGiteaPages(GiteaPagesConfig{
+		GiteaURL:      helper.server.URL,
+		GiteaToken:    "test-token",
+		CacheTTL:      5 * time.Minute,
+		DefaultBranch: "main",
 	})
 
 	// Pre-populate cache to avoid needing external network calls
@@ -92,7 +92,7 @@ func TestGiteaPages_Security_PathTraversalPrevention(t *testing.T) {
 		"public.html": "PUBLIC_DATA",
 	})
 
-	gp := helper.SetupGiteaPages(GiteaPagesConfig{
+	_ = helper.SetupGiteaPages(GiteaPagesConfig{
 		GiteaURL:      "https://git.example.com",
 		DefaultBranch: "main",
 	})
@@ -140,11 +140,11 @@ func TestGiteaPages_Security_PrivateRepoAccess(t *testing.T) {
 	// Setup mock server with private repo
 	repos := map[string]MockRepo{
 		"company/private": {
-			Name:         "private",
-			FullName:     "company/private",
+			Name:          "private",
+			FullName:      "company/private",
 			DefaultBranch: "main",
-			Private:      true,
-			RequireToken: true,
+			Private:       true,
+			RequireToken:  true,
 			Files: map[string]string{
 				"index.html": "<h1>Private Content</h1>",
 			},
@@ -153,7 +153,7 @@ func TestGiteaPages_Security_PrivateRepoAccess(t *testing.T) {
 	helper.CreateMockGiteaServer(repos)
 
 	// Test without token - should fail at API level
-	gp := helper.SetupGiteaPages(GiteaPagesConfig{
+	_ = helper.SetupGiteaPages(GiteaPagesConfig{
 		GiteaURL:      helper.server.URL,
 		DefaultBranch: "main",
 	})
@@ -165,7 +165,7 @@ func TestGiteaPages_Security_PrivateRepoAccess(t *testing.T) {
 	}
 
 	// Test with token - should work
-	gpWithToken := helper.SetupGiteaPages(GiteaPagesConfig{
+	_ = helper.SetupGiteaPages(GiteaPagesConfig{
 		GiteaURL:      helper.server.URL,
 		GiteaToken:    "valid-token",
 		DefaultBranch: "main",
@@ -187,7 +187,7 @@ func TestGiteaPages_DomainMapping(t *testing.T) {
 		"about.html": "<h1>About Company</h1>",
 	})
 
-	gp := helper.SetupGiteaPages(GiteaPagesConfig{
+	_ = helper.SetupGiteaPages(GiteaPagesConfig{
 		GiteaURL:      "https://git.example.com",
 		DefaultBranch: "main",
 		DomainMappings: []DomainMapping{
@@ -241,7 +241,7 @@ func TestGiteaPages_AutoMapping(t *testing.T) {
 		"index.html": "<h1>Auto Mapped Blog</h1>",
 	})
 
-	gp := helper.SetupGiteaPages(GiteaPagesConfig{
+	_ = helper.SetupGiteaPages(GiteaPagesConfig{
 		GiteaURL:      "https://git.example.com",
 		DefaultBranch: "main",
 		AutoMapping: &AutoMapping{
@@ -262,7 +262,7 @@ func TestGiteaPages_Cache_Concurrency(t *testing.T) {
 	helper := NewTestHelper(t)
 	defer helper.Cleanup()
 
-	gp := helper.SetupGiteaPages(GiteaPagesConfig{
+	_ = helper.SetupGiteaPages(GiteaPagesConfig{
 		GiteaURL:      "https://git.example.com",
 		CacheTTL:      15 * time.Minute,
 		DefaultBranch: "main",
@@ -282,7 +282,7 @@ func TestGiteaPages_Cache_Concurrency(t *testing.T) {
 				for j := 0; j < operationsPerWorker; j++ {
 					repoKey := fmt.Sprintf("owner%d/repo%d", workerID%5, j%10)
 					branch := "main"
-					gp.shouldUpdateCache(repoKey, branch)
+					helper.gp.shouldUpdateCache(repoKey, branch)
 				}
 			}(i)
 		}
@@ -297,12 +297,12 @@ func TestGiteaPages_Cache_Concurrency(t *testing.T) {
 				defer wg.Done()
 				for j := 0; j < operationsPerWorker; j++ {
 					cacheKey := fmt.Sprintf("owner%d/repo%d:main", workerID%5, j%10)
-					gp.cache.mu.Lock()
-					gp.cache.repos[cacheKey] = &cacheEntry{
+					helper.gp.cache.mu.Lock()
+					helper.gp.cache.repos[cacheKey] = &cacheEntry{
 						lastUpdate: time.Now(),
 						path:       fmt.Sprintf("/tmp/test-%d-%d", workerID, j),
 					}
-					gp.cache.mu.Unlock()
+					helper.gp.cache.mu.Unlock()
 				}
 			}(i)
 		}
@@ -310,17 +310,17 @@ func TestGiteaPages_Cache_Concurrency(t *testing.T) {
 	})
 
 	// Verify cache integrity after concurrent operations
-	gp.cache.mu.RLock()
-	numEntries := len(gp.cache.repos)
-	gp.cache.mu.RUnlock()
+	helper.gp.cache.mu.RLock()
+	numEntries := len(helper.gp.cache.repos)
+	helper.gp.cache.mu.RUnlock()
 
 	if numEntries == 0 {
 		t.Error("Cache should contain entries after concurrent operations")
 	}
 
 	// Test that all entries are valid
-	gp.cache.mu.RLock()
-	for key, entry := range gp.cache.repos {
+	helper.gp.cache.mu.RLock()
+	for key, entry := range helper.gp.cache.repos {
 		if entry == nil {
 			t.Errorf("Cache entry for key %s should not be nil", key)
 		}
@@ -328,7 +328,7 @@ func TestGiteaPages_Cache_Concurrency(t *testing.T) {
 			t.Errorf("Cache entry for key %s should have valid lastUpdate", key)
 		}
 	}
-	gp.cache.mu.RUnlock()
+	helper.gp.cache.mu.RUnlock()
 }
 
 // TestGiteaPages_ErrorHandling tests various error scenarios
@@ -375,13 +375,13 @@ func TestGiteaPages_ErrorHandling(t *testing.T) {
 			helper := NewTestHelper(t)
 			defer helper.Cleanup()
 
-			gp := helper.SetupGiteaPages(GiteaPagesConfig{
+			_ = helper.SetupGiteaPages(GiteaPagesConfig{
 				GiteaURL:      server.URL,
 				DefaultBranch: "main",
 			})
 
 			// Try to trigger cache update which should fail
-			err := gp.updateRepoCache("test", "repo", "main")
+			err := helper.gp.updateRepoCache("test", "repo", "main")
 
 			if tt.expectedError && err == nil {
 				t.Error("Expected error but got none")
@@ -417,8 +417,8 @@ func TestGiteaPages_IndexFileResolution(t *testing.T) {
 		{
 			name: "fallback_to_index_htm",
 			files: map[string]string{
-				"index.htm":    "<h1>HTM Index</h1>",
-				"default.html": "<h1>Default</h1>",
+				"index.htm":     "<h1>HTM Index</h1>",
+				"default.html":  "<h1>Default</h1>",
 			},
 			indexFiles:    []string{"index.html", "index.htm", "default.html"},
 			expectedIndex: "index.htm",
@@ -437,13 +437,13 @@ func TestGiteaPages_IndexFileResolution(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			helper.CreateCacheEntry("test/website", "main", tt.files)
 
-			gp := helper.SetupGiteaPages(GiteaPagesConfig{
+			_ = helper.SetupGiteaPages(GiteaPagesConfig{
 				GiteaURL:      "https://git.example.com",
 				DefaultBranch: "main",
 				IndexFiles:    tt.indexFiles,
 			})
 
-			result := gp.findIndexFile("test", "website")
+			result := helper.gp.findIndexFile("test", "website")
 			if result != tt.expectedIndex {
 				t.Errorf("Expected index file '%s', got '%s'", tt.expectedIndex, result)
 			}
@@ -530,7 +530,7 @@ func TestGiteaPages_ConfigurationValidation(t *testing.T) {
 // BenchmarkGiteaPages_ServeFile benchmarks file serving performance
 func BenchmarkGiteaPages_ServeFile(b *testing.B) {
 	helper := NewBenchmarkHelper(b)
-	gp := helper.SetupBenchmarkData(10, 1024) // 10 files, 1KB each
+	_ = helper.SetupBenchmarkData(10, 1024) // 10 files, 1KB each
 
 	req := httptest.NewRequest("GET", "/bench/repo/file5.html", nil)
 	next := caddyhttp.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
@@ -540,7 +540,7 @@ func BenchmarkGiteaPages_ServeFile(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		w := httptest.NewRecorder()
-		gp.serveFile(w, req, "bench", "repo", "file5.html", "main")
+		helper.gp.serveFile(w, req, "bench", "repo", "file5.html", "main")
 	}
 }
 
@@ -549,7 +549,7 @@ func BenchmarkGiteaPages_CacheOperations(b *testing.B) {
 	helper := NewTestHelper(&testing.T{})
 	defer helper.Cleanup()
 
-	gp := helper.SetupGiteaPages(GiteaPagesConfig{
+	_ = helper.SetupGiteaPages(GiteaPagesConfig{
 		GiteaURL:      "https://git.example.com",
 		CacheTTL:      15 * time.Minute,
 		DefaultBranch: "main",
@@ -558,7 +558,7 @@ func BenchmarkGiteaPages_CacheOperations(b *testing.B) {
 	// Add some initial cache entries
 	for i := 0; i < 100; i++ {
 		key := fmt.Sprintf("user%d/repo%d:main", i%10, i%10)
-		gp.cache.repos[key] = &cacheEntry{
+		helper.gp.cache.repos[key] = &cacheEntry{
 			lastUpdate: time.Now(),
 			path:       fmt.Sprintf("/tmp/test%d", i),
 		}
@@ -569,14 +569,14 @@ func BenchmarkGiteaPages_CacheOperations(b *testing.B) {
 	b.Run("shouldUpdateCache", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			repoKey := fmt.Sprintf("user%d/repo%d", i%10, i%10)
-			gp.shouldUpdateCache(repoKey, "main")
+			helper.gp.shouldUpdateCache(repoKey, "main")
 		}
 	})
 
 	b.Run("formatRepoName", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			input := fmt.Sprintf("repo%d", i%100)
-			gp.formatRepoName(input, "{subdomain}-service")
+			helper.gp.formatRepoName(input, "{subdomain}-service")
 		}
 	})
 }
