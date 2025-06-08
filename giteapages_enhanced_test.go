@@ -22,12 +22,23 @@ func TestGiteaPages_Integration_CompleteFlow(t *testing.T) {
 	repos := GenerateTestRepos()
 	helper.CreateMockGiteaServer(repos)
 
-	// Configure GitteaPages
+	// Configure GiteaPages
 	gp := helper.SetupGiteaPages(GiteaPagesConfig{
 		GiteaURL:      helper.server.URL,
 		GiteaToken:    "test-token",
 		CacheTTL:      5 * time.Minute,
 		DefaultBranch: "main",
+	})
+
+	// Pre-populate cache to avoid needing external network calls
+	helper.CreateCacheEntry("user/website", "main", map[string]string{
+		"index.html":   "<h1>Welcome to My Website</h1>",
+		"about.html":   "<h1>About Us</h1>",
+		"css/style.css": "body { font-family: Arial; }",
+	})
+	
+	helper.CreateCacheEntry("org/blog", "gh-pages", map[string]string{
+		"index.html": "<h1>Blog Home</h1>",
 	})
 
 	// Test scenarios
@@ -114,7 +125,7 @@ func TestGiteaPages_Security_PathTraversalPrevention(t *testing.T) {
 
 	helper.TestSecurityScenario(scenario)
 
-	// Test that legitimate files still work
+	// Test that legitimate files still works
 	t.Run("legitimate_file_access", func(t *testing.T) {
 		w := helper.MakeHTTPRequest("GET", "/test/repo/public.html", "", nil)
 		helper.AssertResponse(w, http.StatusOK, "PUBLIC_DATA")
@@ -220,7 +231,7 @@ func TestGiteaPages_DomainMapping(t *testing.T) {
 	}
 }
 
-// TestGiteaPages_AutoMapping tests automatic domain mapping
+// TestGiteaPages_AutoMapping tests automatic domain-to-repository mapping
 func TestGiteaPages_AutoMapping(t *testing.T) {
 	helper := NewTestHelper(t)
 	defer helper.Cleanup()
@@ -406,8 +417,8 @@ func TestGiteaPages_IndexFileResolution(t *testing.T) {
 		{
 			name: "fallback_to_index_htm",
 			files: map[string]string{
-				"index.htm":  "<h1>HTM Index</h1>",
-				"default.html": "<h1>Default</h1>",
+				"index.htm":     "<h1>HTM Index</h1>",
+				"default.html":  "<h1>Default</h1>",
 			},
 			indexFiles:    []string{"index.html", "index.htm", "default.html"},
 			expectedIndex: "index.htm",
