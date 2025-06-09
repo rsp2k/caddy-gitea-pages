@@ -1,66 +1,112 @@
-# Caddy Gitea Pages Module
+<div align="center">
 
-A Caddy module that implements GitHub Pages-like functionality for self-hosted Gitea installations. This module allows you to serve static websites directly from Gitea repositories, similar to how GitHub Pages works.
+# 🚀 Caddy Gitea Pages
 
-## Features
+**Transform your Gitea into a powerful static site hosting platform**
 
-- **Static Site Hosting**: Serve static websites directly from Gitea repositories
-- **Custom Domain Mapping**: Map custom domains to specific repositories
-- **Automatic Domain Resolution**: Auto-map domains to repositories using configurable patterns
-- **Branch Support**: Serve from specific branches per domain or use repository defaults
-- **Automatic Caching**: Built-in caching system to improve performance
-- **Index File Detection**: Automatically serves index.html or custom index files
-- **Token Authentication**: Support for private repositories via Gitea tokens
-- **Flexible Configuration**: Multiple hosting patterns supported
+[![Test](https://github.com/rsp2k/caddy-gitea-pages/actions/workflows/test.yml/badge.svg)](https://github.com/rsp2k/caddy-gitea-pages/actions/workflows/test.yml)
+[![Release](https://github.com/rsp2k/caddy-gitea-pages/actions/workflows/release.yml/badge.svg)](https://github.com/rsp2k/caddy-gitea-pages/actions/workflows/release.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/rsp2k/caddy-gitea-pages)](https://goreportcard.com/report/github.com/rsp2k/caddy-gitea-pages)
+[![Go Reference](https://pkg.go.dev/badge/github.com/rsp2k/caddy-gitea-pages.svg)](https://pkg.go.dev/github.com/rsp2k/caddy-gitea-pages)
 
-## Installation
+*A powerful Caddy module that brings GitHub Pages-like functionality to your self-hosted Gitea instance*
 
-### Option 1: Using xcaddy (Recommended)
+[🚀 Quick Start](#-quick-start) • [📖 Documentation](#-configuration) • [🎯 Examples](#-usage-patterns) • [🤝 Contributing](#-contributing)
 
-First, install xcaddy if you haven't already:
+</div>
+
+---
+
+## ✨ What is Caddy Gitea Pages?
+
+Caddy Gitea Pages is a **modern, lightweight** Caddy module that transforms your self-hosted Gitea instance into a powerful static site hosting platform. Just like GitHub Pages, but for your own infrastructure! 
+
+🎯 **Perfect for:**
+- Personal portfolios and blogs
+- Project documentation sites  
+- Corporate websites and landing pages
+- Multi-tenant hosting platforms
+- Developer-friendly static site deployments
+
+---
+
+## 🌟 Key Features
+
+<table>
+<tr>
+<td width="33%">
+
+### 🌐 **Smart Domain Mapping**
+- Custom domain support
+- Automatic subdomain routing
+- Flexible pattern matching
+- GitHub Pages-style user sites
+
+</td>
+<td width="33%">
+
+### ⚡ **High Performance**
+- Built-in intelligent caching
+- TTL-based cache invalidation
+- Efficient tar.gz extraction
+- Caddy's native performance
+
+</td>
+<td width="33%">
+
+### 🔒 **Secure & Flexible**
+- Token-based authentication
+- Private repository support
+- Path traversal protection
+- Environment variable config
+
+</td>
+</tr>
+</table>
+
+### 📋 **Complete Feature List**
+
+- ✅ **Static Site Hosting** - Serve websites directly from Gitea repos
+- ✅ **Custom Domain Mapping** - Map any domain to any repository  
+- ✅ **Automatic Domain Resolution** - Smart subdomain-to-repo mapping
+- ✅ **Multi-Branch Support** - Serve from any branch (main, gh-pages, etc.)
+- ✅ **Intelligent Caching** - Fast response times with smart cache management
+- ✅ **Index File Detection** - Automatic index.html/index.htm serving
+- ✅ **Private Repository Support** - Access control via Gitea tokens
+- ✅ **Multiple Hosting Patterns** - From simple to enterprise-grade setups
+
+---
+
+## 🚀 Quick Start
+
+### 📦 Installation
+
+#### Option 1: Using xcaddy (Recommended)
+
 ```bash
+# Install xcaddy
 go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
-```
 
-Then build Caddy with the module:
-```bash
+# Build Caddy with the module
 xcaddy build --with github.com/rsp2k/caddy-gitea-pages
 ```
 
-### Option 2: Manual Build
+#### Option 2: Development Build
 
-1. Install xcaddy:
-   ```bash
-   go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
-   ```
+```bash
+# Clone the repository
+git clone https://github.com/rsp2k/caddy-gitea-pages.git
+cd caddy-gitea-pages
 
-2. Clone this repository:
-   ```bash
-   git clone https://github.com/rsp2k/caddy-gitea-pages.git
-   cd caddy-gitea-pages
-   ```
-
-3. Build Caddy with the module:
-   ```bash
-   go mod tidy
-   xcaddy build --with github.com/rsp2k/caddy-gitea-pages=.
-   ```
-
-## Configuration
-
-### Basic Caddyfile Configuration
-
-```caddyfile
-pages.example.com {
-    gitea_pages {
-        gitea_url https://git.example.com
-        gitea_token your_gitea_access_token_here
-        cache_ttl 15m
-    }
-}
+# Build with local module
+go mod tidy
+xcaddy build --with github.com/rsp2k/caddy-gitea-pages=.
 ```
 
-You can also use environment variables for the token:
+### ⚙️ Basic Configuration
+
+Create a simple `Caddyfile`:
+
 ```caddyfile
 pages.example.com {
     gitea_pages {
@@ -71,355 +117,460 @@ pages.example.com {
 }
 ```
 
-### Configuration Options
-
-| Option | Description | Default |
-|--------|-------------|---------|
-| `gitea_url` | URL of your Gitea instance | Required |
-| `gitea_token` | Gitea access token for API access | Optional |
-| `cache_dir` | Directory for caching repositories | `$CADDY_DATA/gitea_pages_cache` |
-| `cache_ttl` | Cache time-to-live | `15m` |
-| `default_branch` | Default branch to serve | `main` |
-| `index_files` | Index files to look for | `index.html index.htm` |
-| `domain_mapping` | Explicit domain to repository mapping | None |
-| `auto_mapping` | Automatic domain mapping configuration | Disabled |
-
-### Domain Mapping Configuration
-
-#### Explicit Domain Mappings
-
-```caddyfile
-gitea_pages {
-    domain_mapping example.com owner repository branch
-    domain_mapping blog.example.com user blog-repo main
-}
-```
-
-#### Auto Mapping
-
-```caddyfile
-gitea_pages {
-    auto_mapping {
-        enabled true
-        pattern {subdomain}.{domain}
-        owner myorg
-        repo_format {subdomain}
-        branch main
-    }
-}
-```
-
-**Auto Mapping Options:**
-
-| Option | Description | Example |
-|--------|-------------|---------|
-| `enabled` | Enable auto mapping | `true` |
-| `pattern` | Domain pattern to match | `{subdomain}.{domain}`, `{domain}`, `{user}.pages.{domain}` |
-| `owner` | Default repository owner | `myorg` |
-| `repo_format` | Repository name format | `{subdomain}`, `{domain}`, `{input}` |
-| `branch` | Branch override for auto-mapped repos | `main` |
-
-### Token Configuration
-
-You have two options for configuring the Gitea token:
-
-#### Option 1: Direct in Caddyfile
-```caddyfile
-gitea_pages {
-    gitea_url https://git.example.com
-    gitea_token your_actual_token_here
-}
-```
-
-#### Option 2: Environment Variable (Recommended)
+Set your Gitea token:
 ```bash
 export GITEA_TOKEN=your_gitea_access_token_here
 ```
+
+**That's it!** 🎉 Your Gitea Pages server is ready!
+
+---
+
+## 📖 Configuration
+
+### 🔧 Configuration Options
+
+| Option | Description | Default | Example |
+|--------|-------------|---------|---------|
+| `gitea_url` | 🌐 Your Gitea instance URL | **Required** | `https://git.example.com` |
+| `gitea_token` | 🔑 API access token | Optional | `{env.GITEA_TOKEN}` |
+| `cache_dir` | 📁 Cache storage location | `$CADDY_DATA/gitea_pages_cache` | `/var/cache/gitea-pages` |
+| `cache_ttl` | ⏰ Cache refresh interval | `15m` | `1h`, `30m`, `5m` |
+| `default_branch` | 🌿 Default branch to serve | `main` | `gh-pages`, `master` |
+| `index_files` | 📄 Index file names | `index.html index.htm` | `index.html default.html` |
+
+### 🗺️ Domain Mapping Strategies
+
+#### 🎯 Explicit Domain Mapping
+Perfect for specific site assignments:
 
 ```caddyfile
 gitea_pages {
     gitea_url https://git.example.com
     gitea_token {env.GITEA_TOKEN}
+    
+    domain_mapping blog.example.com johndoe personal-blog main
+    domain_mapping docs.example.com company documentation gh-pages
 }
 ```
 
-## Usage Patterns
-
-### Pattern 1: Path-based Routing (Traditional)
-
-```
-https://pages.example.com/owner/repo/
-```
-
-Repository: `owner/repo`  
-Serves: Files from the repository's default branch
-
-### Pattern 2: Explicit Domain Mapping
-
-```caddyfile
-blog.example.com {
-    gitea_pages {
-        gitea_url https://git.example.com
-        gitea_token your_token_here
-        domain_mapping blog.example.com johndoe personal-blog
-    }
-}
-```
-
-**Result**: `blog.example.com` serves from `johndoe/personal-blog` repository
-
-### Pattern 3: Subdomain Auto-mapping
+#### 🤖 Automatic Domain Mapping
+Smart subdomain routing:
 
 ```caddyfile
 *.example.com {
     gitea_pages {
         gitea_url https://git.example.com
-        gitea_token your_token_here
+        gitea_token {env.GITEA_TOKEN}
+        
         auto_mapping {
             enabled true
             pattern {subdomain}.{domain}
             owner websites
             repo_format {subdomain}
+            branch main
         }
     }
 }
 ```
 
-**Results**:
-- `blog.example.com` → `websites/blog` repository
-- `docs.example.com` → `websites/docs` repository
-- `api.example.com` → `websites/api` repository
+**Auto Mapping Patterns:**
 
-### Pattern 4: User Pages
+| Pattern | Example Domain | Maps To Repository |
+|---------|----------------|-------------------|
+| `{subdomain}.{domain}` | `blog.example.com` | `websites/blog` |
+| `{user}.pages.{domain}` | `john.pages.example.com` | `john/john.pages.example.com` |
+| `{domain}` | `example.com` | `mainsite/example.com` |
 
-```caddyfile
-*.pages.example.com {
-    gitea_pages {
-        gitea_url https://git.example.com
-        gitea_token your_token_here
-        auto_mapping {
-            enabled true
-            pattern {user}.pages.{domain}
-            repo_format {domain}
-        }
-    }
-}
-```
+---
 
-**Results**:
-- `john.pages.example.com` → `john/john.pages.example.com` repository
-- `jane.pages.example.com` → `jane/jane.pages.example.com` repository
+## 🎯 Usage Patterns
 
-### Pattern 5: Direct Domain Mapping
+### 🏠 Personal User Sites
 
 ```caddyfile
-example.com {
+# GitHub Pages style: username.github.io → username.gitea.example.com
+*.gitea.example.com {
     gitea_pages {
         gitea_url https://git.example.com
-        gitea_token your_token_here
-        auto_mapping {
-            enabled true
-            pattern {domain}
-            owner mainsite
-            repo_format {domain}
-        }
-    }
-}
-```
-
-**Result**: `example.com` → `mainsite/example.com` repository
-
-### Pattern 6: Mixed Configuration
-
-```caddyfile
-*.example.com {
-    gitea_pages {
-        gitea_url https://git.example.com
-        gitea_token your_token_here
+        gitea_token {env.GITEA_TOKEN}
         
-        # Explicit mappings (highest priority)
-        domain_mapping blog.example.com johndoe personal-blog
-        domain_mapping api.example.com backend api-docs
+        auto_mapping {
+            enabled true
+            pattern {user}.gitea.{domain}
+            repo_format {user}.gitea.{domain}
+        }
+    }
+}
+```
+
+### 🏢 Corporate Multi-Site Setup
+
+```caddyfile
+*.company.com {
+    gitea_pages {
+        gitea_url https://git.company.com
+        gitea_token {env.GITEA_TOKEN}
         
-        # Auto-mapping for other subdomains
+        # 🎯 Explicit high-priority sites
+        domain_mapping company.com marketing main-website
+        domain_mapping blog.company.com content blog
+        domain_mapping docs.company.com engineering documentation
+        domain_mapping support.company.com support help-center
+        
+        # 🤖 Auto-mapping for project sites
         auto_mapping {
             enabled true
-            pattern {subdomain}.{domain}
-            owner sites
-            repo_format {subdomain}-site
-        }
-    }
-}
-```
-
-**Priority Order**:
-1. Explicit domain mappings
-2. Auto-mapping patterns
-3. Fallback to path-based routing
-
-## Domain Mapping Examples
-
-### GitHub Pages Style User/Organization Sites
-
-```caddyfile
-# User pages: username.github.io equivalent
-*.pages.example.com {
-    gitea_pages {
-        gitea_url https://git.example.com
-        gitea_token your_token_here
-        auto_mapping {
-            enabled true
-            pattern {user}.pages.{domain}
-            repo_format {user}.pages.{domain}
-        }
-    }
-}
-```
-
-### Project Pages with Custom Domains
-
-```caddyfile
-# Multiple project sites
-*.projects.example.com {
-    gitea_pages {
-        gitea_url https://git.example.com
-        gitea_token your_token_here
-        auto_mapping {
-            enabled true
-            pattern {project}.projects.{domain}
-            owner myorg
-            repo_format {project}
+            pattern {project}.company.com
+            owner projects
+            repo_format {project}-site
             branch gh-pages
         }
     }
 }
 ```
 
-### Corporate Website Setup
+### 🚀 Developer Platform
 
 ```caddyfile
-# Main corporate sites
-*.example.com {
+# Multi-tenant developer platform
+*.dev.example.com {
     gitea_pages {
         gitea_url https://git.example.com
-        gitea_token your_token_here
+        gitea_token {env.GITEA_TOKEN}
         
-        # Main website
-        domain_mapping example.com corporate main-website
-        
-        # Specific sections
-        domain_mapping blog.example.com marketing blog
-        domain_mapping docs.example.com engineering documentation
-        domain_mapping support.example.com customer-success help-center
-        
-        # Auto-mapping for other subdomains
         auto_mapping {
             enabled true
-            pattern {subdomain}.{domain}
-            owner websites
-            repo_format {subdomain}
+            pattern {username}.dev.{domain}
+            repo_format portfolio
+            branch main
         }
     }
 }
 ```
 
-## API Integration
+---
 
-The module uses Gitea's REST API to:
+## 🔐 Security & Authentication
 
-- Fetch repository information
-- Download repository archives
-- Check for updates
+### 🔑 Token Configuration
 
-### Required API Permissions
+#### Environment Variables (Recommended)
+```bash
+export GITEA_TOKEN=your_secure_token_here
+```
 
-For public repositories: No token required  
-For private repositories: Token with repository read access
+```caddyfile
+gitea_pages {
+    gitea_token {env.GITEA_TOKEN}
+}
+```
 
-### Creating a Gitea Token
+#### Direct Configuration (Development Only)
+```caddyfile
+gitea_pages {
+    gitea_token your_actual_token_here  # ⚠️ Not recommended for production
+}
+```
 
-1. Go to your Gitea instance
-2. Navigate to Settings → Applications
-3. Generate a new token with repository permissions
-4. Use the token in your Caddyfile configuration
+### 🛡️ Security Features
 
-## Caching Strategy
+- 🔒 **Path Traversal Protection** - Built-in directory traversal prevention
+- 🎫 **Token-Based Access** - Secure API authentication
+- 🏠 **Repository Permissions** - Respects Gitea's native access controls
+- 📁 **Sandboxed Cache** - Isolated cache directory per repository
 
-The module implements a two-level caching system:
+### 🎯 API Permissions Required
 
-1. **Repository Cache**: Downloads and extracts repository contents locally
-2. **TTL-based Updates**: Checks for updates based on configured cache TTL
+| Repository Type | Token Required | Permissions Needed |
+|-----------------|----------------|--------------------|
+| Public repos | ❌ No | None |
+| Private repos | ✅ Yes | Repository read access |
+| Organization repos | ✅ Yes | Organization member + repo access |
 
-### Cache Management
+---
 
-- Cache is stored in the configured `cache_dir`
-- Repositories are re-downloaded when cache expires
-- Cache survives Caddy restarts
+## ⚡ Performance & Caching
 
-## Security Considerations
+### 🚀 Caching Strategy
 
-- **Token Security**: Use environment variables for tokens in production
-- **Repository Access**: Module respects Gitea's repository permissions
-- **Path Traversal**: Built-in protection against directory traversal attacks
-- **Rate Limiting**: Consider implementing rate limiting for high-traffic sites
+```mermaid
+graph LR
+    A[Request] --> B{Cache Hit?}
+    B -->|Yes| C[Serve from Cache]
+    B -->|No| D[Fetch from Gitea]
+    D --> E[Extract & Cache]
+    E --> F[Serve Content]
+    
+    G[TTL Expired?] --> H[Refresh Cache]
+    H --> D
+```
 
-## Troubleshooting
+### 📊 Cache Management
 
-### Common Issues
+- **📁 Storage**: Configurable cache directory
+- **⏰ TTL**: Automatic cache invalidation
+- **🔄 Updates**: Smart refresh on repository changes
+- **💾 Persistence**: Cache survives Caddy restarts
 
-1. **Repository Not Found**
-   - Check repository name and owner
-   - Verify token permissions for private repos
+### 🎛️ Performance Tuning
 
-2. **Files Not Updating**
-   - Check cache TTL configuration
-   - Clear cache directory if needed
+```caddyfile
+gitea_pages {
+    cache_ttl 1h        # 🕐 Longer TTL for stable sites
+    cache_dir /fast/ssd/cache  # 💾 Use fast storage
+}
+```
 
-3. **API Connection Issues**
-   - Verify Gitea URL is accessible
-   - Check token validity
+**💡 Pro Tips:**
+- Use SSD storage for cache directory
+- Adjust TTL based on update frequency
+- Monitor repository sizes
+- Consider CDN for static assets
 
-### Debug Logging
+---
 
-Enable debug logging in your Caddyfile:
+## 🔧 Troubleshooting
+
+### 🚨 Common Issues
+
+<details>
+<summary><strong>🔍 Repository Not Found</strong></summary>
+
+**Symptoms:** 404 errors, "repository not found" messages
+
+**Solutions:**
+- ✅ Verify repository name and owner spelling
+- ✅ Check token permissions for private repositories
+- ✅ Ensure repository exists and is accessible
+- ✅ Test API access: `curl -H "Authorization: token YOUR_TOKEN" https://git.example.com/api/v1/repos/owner/repo`
+
+</details>
+
+<details>
+<summary><strong>🔄 Content Not Updating</strong></summary>
+
+**Symptoms:** Old content served, changes not reflected
+
+**Solutions:**
+- ✅ Check cache TTL configuration
+- ✅ Clear cache directory: `rm -rf /path/to/cache/*`
+- ✅ Verify branch configuration
+- ✅ Check Gitea API rate limits
+
+</details>
+
+<details>
+<summary><strong>🔌 API Connection Issues</strong></summary>
+
+**Symptoms:** Connection timeouts, API errors
+
+**Solutions:**
+- ✅ Verify Gitea URL accessibility
+- ✅ Test token validity
+- ✅ Check network connectivity
+- ✅ Review Caddy logs for detailed errors
+
+</details>
+
+### 🐛 Debug Mode
+
+Enable detailed logging:
 
 ```caddyfile
 {
     debug
+    log {
+        level DEBUG
+        output file /var/log/caddy/debug.log
+    }
 }
 
 pages.example.com {
     gitea_pages {
         gitea_url https://git.example.com
-        gitea_token your_token_here
-    }
-    
-    log {
-        level DEBUG
+        gitea_token {env.GITEA_TOKEN}
     }
 }
 ```
 
-## Performance Optimization
+---
 
-- Set appropriate cache TTL based on update frequency
-- Use a fast storage backend for cache directory
-- Consider using a CDN for static assets
-- Monitor repository sizes to avoid excessive downloads
+## 🏗️ Advanced Configuration Examples
 
-## Contributing
+### 🌐 Enterprise Multi-Domain Setup
 
-1. Fork the repository
-2. Create a feature branch
-3. Add tests for new functionality
-4. Submit a pull request
+```caddyfile
+# Main corporate sites
+*.company.com, company.com {
+    gitea_pages {
+        gitea_url https://git.company.com
+        gitea_token {env.CORPORATE_GITEA_TOKEN}
+        cache_ttl 1h
+        
+        # Main website
+        domain_mapping company.com corporate main-website
+        
+        # Department sites
+        domain_mapping marketing.company.com marketing website
+        domain_mapping engineering.company.com engineering docs
+        domain_mapping hr.company.com hr handbook
+        
+        # Product sites
+        domain_mapping product1.company.com products product1-landing
+        domain_mapping product2.company.com products product2-landing
+        
+        # Auto-mapping for team sites
+        auto_mapping {
+            enabled true
+            pattern {team}.company.com
+            owner teams
+            repo_format {team}-site
+            branch production
+        }
+    }
+}
 
-## License
+# Development/staging sites
+*.dev.company.com {
+    gitea_pages {
+        gitea_url https://git.company.com
+        gitea_token {env.DEV_GITEA_TOKEN}
+        cache_ttl 5m  # Shorter cache for dev sites
+        
+        auto_mapping {
+            enabled true
+            pattern {project}.dev.{domain}
+            owner development
+            repo_format {project}
+            branch develop
+        }
+    }
+}
+```
 
-This project is licensed under the Apache 2.0 License - see the LICENSE file for details.
+### 🎓 Educational Platform
 
-## Support
+```caddyfile
+# Student portfolio sites
+*.students.university.edu {
+    gitea_pages {
+        gitea_url https://git.university.edu
+        gitea_token {env.STUDENT_GITEA_TOKEN}
+        
+        auto_mapping {
+            enabled true
+            pattern {student}.students.{domain}
+            repo_format portfolio
+            branch main
+        }
+    }
+}
 
-- GitHub Issues: Report bugs and feature requests
-- Documentation: Check the wiki for additional examples
-- Community: Join discussions in the issues section
+# Course websites
+*.courses.university.edu {
+    gitea_pages {
+        gitea_url https://git.university.edu
+        gitea_token {env.FACULTY_GITEA_TOKEN}
+        
+        auto_mapping {
+            enabled true
+            pattern {course}.courses.{domain}
+            owner faculty
+            repo_format {course}-website
+            branch published
+        }
+    }
+}
+```
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Here's how you can help:
+
+### 🐛 Reporting Issues
+- Use the [issue tracker](https://github.com/rsp2k/caddy-gitea-pages/issues)
+- Include detailed reproduction steps
+- Provide configuration examples
+- Share relevant log outputs
+
+### 💻 Development Setup
+
+```bash
+# Fork and clone
+git clone https://github.com/YOUR_USERNAME/caddy-gitea-pages.git
+cd caddy-gitea-pages
+
+# Install dependencies
+go mod tidy
+
+# Run tests
+go test -v ./...
+
+# Build with your changes
+xcaddy build --with github.com/rsp2k/caddy-gitea-pages=.
+```
+
+### 🔄 Pull Request Process
+
+1. 🍴 **Fork** the repository
+2. 🌿 **Create** a feature branch (`git checkout -b feature/amazing-feature`)
+3. ✨ **Add** tests for new functionality
+4. ✅ **Ensure** all tests pass
+5. 📝 **Commit** your changes (`git commit -m 'Add amazing feature'`)
+6. 🚀 **Push** to the branch (`git push origin feature/amazing-feature`)
+7. 🔀 **Open** a Pull Request
+
+### 🧪 Testing
+
+```bash
+# Run all tests
+go test ./...
+
+# Run tests with coverage
+go test -cover ./...
+
+# Run specific tests
+go test -run TestGitteaPages ./...
+```
+
+---
+
+## 📜 License
+
+This project is licensed under the **Apache 2.0 License** - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🙏 Support & Community
+
+### 💬 Get Help
+
+- **📚 Documentation**: Check this README and the [wiki](https://github.com/rsp2k/caddy-gitea-pages/wiki)
+- **🐛 Issues**: [GitHub Issues](https://github.com/rsp2k/caddy-gitea-pages/issues) for bugs and feature requests  
+- **💡 Discussions**: [GitHub Discussions](https://github.com/rsp2k/caddy-gitea-pages/discussions) for questions and ideas
+- **📖 Caddy Community**: [Caddy Community Forum](https://caddy.community/)
+
+### 🌟 Show Your Support
+
+If this project helps you, please consider:
+- ⭐ **Starring** the repository
+- 🐛 **Reporting** issues you encounter
+- 💡 **Suggesting** new features
+- 🤝 **Contributing** code or documentation
+- 📢 **Sharing** with others who might benefit
+
+---
+
+<div align="center">
+
+**Made with ❤️ for the self-hosted community**
+
+*Bring the power of GitHub Pages to your own infrastructure*
+
+[![GitHub stars](https://img.shields.io/github/stars/rsp2k/caddy-gitea-pages?style=social)](https://github.com/rsp2k/caddy-gitea-pages/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/rsp2k/caddy-gitea-pages?style=social)](https://github.com/rsp2k/caddy-gitea-pages/network/members)
+
+</div>

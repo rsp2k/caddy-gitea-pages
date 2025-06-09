@@ -1,0 +1,128 @@
+# .golangci.yml
+# Minimal golangci-lint configuration focused on essential linters
+
+run:
+  timeout: 5m
+  tests: true
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+  
+  goconst:
+    min-len: 2
+    min-occurrences: 2
+  
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+    disabled-checks:
+      - dupImport
+      - ifElseChain
+      - octalLiteral
+      - whyNoLint
+      - wrapperFunc
+  
+  gocyclo:
+    min-complexity: 15
+  
+  goimports:
+    local-prefixes: github.com/rsp2k/caddy-gitea-pages
+  
+  govet:
+    enable:
+      - shadow
+  
+  lll:
+    line-length: 140
+  
+  misspell:
+    locale: US
+  
+  # revive configuration without the deprecated min-confidence setting
+  revive:
+    rules:
+      - name: blank-imports
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: dot-imports
+      - name: error-return
+      - name: error-strings
+      - name: error-naming
+      - name: exported
+      - name: if-return
+      - name: increment-decrement
+      - name: var-naming
+      - name: var-declaration
+      - name: package-comments
+      - name: range
+      - name: receiver-naming
+      - name: time-naming
+      - name: unexported-return
+      - name: indent-error-flow
+      - name: errorf
+      - name: empty-block
+      - name: superfluous-else
+      - name: unused-parameter
+      - name: unreachable-code
+      - name: redefines-builtin-id
+
+linters:
+  disable-all: true
+  enable:
+    # Essential linters
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - typecheck
+    - unused
+    - goconst
+    - gocyclo
+    - gofmt
+    - goimports
+    - misspell
+    - revive
+    - gosec
+    - gocritic
+    
+    # Additional useful linters
+    - bodyclose
+    - dupl
+    - gocognit
+    - godot
+    - nolintlint
+    - rowserrcheck
+    - unconvert
+    - unparam
+    - whitespace
+
+issues:
+  exclude-rules:
+    # Relax linting for test files
+    - path: _test\.go
+      linters:
+        - goconst
+        - gocyclo
+        - errcheck
+        - dupl
+        - gosec
+        - revive
+    
+    # Ignore long lines for go:generate comments
+    - linters:
+        - lll
+      source: "^//go:generate "
+  
+  exclude-dirs:
+    - vendor
+    - testdata
+
+  max-issues-per-linter: 0
+  max-same-issues: 0

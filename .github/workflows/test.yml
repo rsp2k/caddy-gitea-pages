@@ -1,58 +1,89 @@
-name: Test
+name: Tests
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master, develop ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, master, develop ]
+  schedule:
+    # Run tests weekly to catch dependency issues
+    - cron: '0 0 * * 0'
 
 jobs:
   test:
-    runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: ['1.21', '1.22']
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        go-version: ['1.21.x', '1.22.x', '1.23.x']
+        include:
+          # Test with minimum supported Go version
+          - os: ubuntu-latest
+            go-version: '1.21.0'
+          # Test with latest stable
+          - os: ubuntu-latest
+            go-version: 'stable'
+    
+    runs-on: ${{ matrix.os }}
     
     steps:
-    - uses: actions/checkout@v4
-    
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
         go-version: ${{ matrix.go-version }}
-    
-    - name: Cache Go modules
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cache/go-build
-          ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-${{ matrix.go-version }}-
-          ${{ runner.os }}-go-
-    
-    - name: Tidy dependencies
-      run: go mod tidy
-    
-    - name: Download dependencies
-      run: go mod download
-    
+        cache: true
+        cache-dependency-path: go.sum
+        
     - name: Verify dependencies
-      run: go mod verify
-    
+      run: |
+        go mod verify
+        go mod tidy
+        git diff --exit-code
+        
     - name: Run go vet
       run: go vet ./...
-    
+      
     - name: Install staticcheck
       run: go install honnef.co/go/tools/cmd/staticcheck@latest
-    
+      
     - name: Run staticcheck
       run: staticcheck ./...
-    
-    - name: Run tests
-      run: go test -race -vet=off ./...
-    
+        
+    - name: Build
+      run: go build -v ./...
+      
+    - name: Run unit tests
+      run: go test -v -race -short -coverprofile=coverage.out ./...
+      
+    - name: Run tests with race detection
+      run: go test -v -race -short ./...
+      
+    - name: Run benchmarks
+      run: go test -bench=. -benchmem -short ./...
+      
+    - name: Upload coverage to Codecov
+      if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.22.x'
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage.out
+        flags: unittests
+        name: codecov-umbrella
+        
+    - name: Generate coverage report
+      if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.22.x'
+      run: |
+        go tool cover -html=coverage.out -o coverage.html
+        go tool cover -func=coverage.out
+        
+    - name: Upload coverage artifacts
+      if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.22.x'
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: coverage.html
+
     - name: Install xcaddy
       run: go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
     
@@ -64,54 +95,94 @@ jobs:
         ./caddy version
         ./caddy list-modules | grep gitea_pages || echo "Module built successfully"
 
-  # Build test for different platforms
-  build:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.22.x'
+        cache: true
+        
+    - name: golangci-lint
+      uses: golangci/golangci-lint-action@v6
+      with:
+        version: latest
+        args: --timeout=5m
+        
+    - name: Check formatting
+      run: |
+        if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
+          echo "The following files are not formatted:"
+          gofmt -s -l .
+          exit 1
+        fi
+
+  integration:
+    runs-on: ubuntu-latest
+    needs: [test, lint]
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.22.x'
+        cache: true
+        
+    - name: Install xcaddy
+      run: go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
+      
+    - name: Build Caddy with module
+      run: xcaddy build --with github.com/rsp2k/caddy-gitea-pages=.
+      
+    - name: Test Caddy build
+      run: ./caddy list-modules | grep gitea
+      
+    - name: Test configuration parsing
+      run: |
+        echo 'localhost {
+           gitea_pages {
+              gitea_url https://git.example.com
+              cache_ttl 15m
+           }
+        }' > Caddyfile
+        ./caddy validate --config Caddyfile
+        
+    - name: Run integration tests
+      run: go test -v -tags=integration ./...
+
+  cross-compile:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         goos: [linux, windows, darwin]
         goarch: [amd64, arm64]
         exclude:
-          # Exclude unsupported combinations
           - goos: windows
             goarch: arm64
-    
     steps:
-    - uses: actions/checkout@v4
-    
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.22'
-    
-    - name: Cache Go modules
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cache/go-build
-          ~/go/pkg/mod
-        key: ${{ runner.os }}-go-1.22-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-1.22-
-          ${{ runner.os }}-go-
-    
-    - name: Tidy dependencies
-      run: go mod tidy
-    
-    - name: Download dependencies
-      run: go mod download
-    
-    - name: Install xcaddy
-      run: go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
-    
-    - name: Build for ${{ matrix.goos }}/${{ matrix.goarch }}
+        go-version: '1.22.x'
+        
+    - name: Cross compile
       env:
         GOOS: ${{ matrix.goos }}
         GOARCH: ${{ matrix.goarch }}
       run: |
-        xcaddy build --with github.com/rsp2k/caddy-gitea-pages=.
-        if [ "${{ matrix.goos }}" = "windows" ]; then
-          ls -la caddy.exe
-        else
-          ls -la caddy
-        fi
+        go build -v -o caddy-gitea-pages-${{ matrix.goos }}-${{ matrix.goarch }} ./...
+        
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: caddy-gitea-pages-${{ matrix.goos }}-${{ matrix.goarch }}
+        path: caddy-gitea-pages-${{ matrix.goos }}-${{ matrix.goarch }}*
